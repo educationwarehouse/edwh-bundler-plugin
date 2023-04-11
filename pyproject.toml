@@ -40,7 +40,7 @@ bundle = "edwh_bundler_plugin.bundler_plugin"
 path = "src/edwh_bundler_plugin/__about__.py"
 
 [tool.semantic_release]
-branch = "main"
+branch = "master"
 version_variable = "src/edwh_bundler_plugin/__about__.py:__version__"
 change_log = "CHANGELOG.md"
 upload_to_repository = false
