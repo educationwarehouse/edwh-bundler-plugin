@@ -1,7 +1,7 @@
-# edwh-demo-plugin
+# edwh-bundler-plugin
 
-[![PyPI - Version](https://img.shields.io/pypi/v/edwh-demo-plugin.svg)](https://pypi.org/project/edwh-demo-plugin)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/edwh-demo-plugin.svg)](https://pypi.org/project/edwh-demo-plugin)
+[![PyPI - Version](https://img.shields.io/pypi/v/edwh-bundler-plugin.svg)](https://pypi.org/project/edwh-bundler-plugin)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/edwh-bundler-plugin.svg)](https://pypi.org/project/edwh-bundler-plugin)
 
 -----
 
@@ -13,9 +13,17 @@
 ## Installation
 
 ```console
-pip install edwh-demo-plugin
+pip install edwh-bundler-plugin
+```
+
+But probably you want to install the whole edwh package:
+
+```console
+pipx install edwh[bundler]
+# or
+pipx install edwh[plugins,omgeving]
 ```
 
 ## License
 
-`edwh-demo-plugin` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+`edwh-bundler-plugin` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.

@@ -3,14 +3,15 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "edwh-demo-tasks-plugin"
+name = "edwh-bundler-plugin"
 dynamic = ["version"]
-description = 'Demo project with a plugin to be discovered from the edwh package'
+description = 'Python-only static file (js, css) bundler for `edwh`'
 readme = "README.md"
 requires-python = ">=3.7"
 license = "MIT"
 keywords = []
 authors = [
+  { name = "Robin van der Noord", email = "robin.vdn@educationwarehouse.nl" },
   { name = "Remco Boerma", email = "remco.b@educationwarehouse.nl" },
 ]
 classifiers = [
@@ -24,19 +25,19 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ['invoke']
+dependencies = ['invoke', 'python-dotenv', 'pysass', 'rjsmin']
 
 [project.urls]
-Documentation = "https://github.com/remcoboerma/edwh-demo-tasks-plugin#readme"
-Issues = "https://github.com/remcoboerma/edwh-demo-tasks-plugin/issues"
-Source = "https://github.com/remcoboerma/edwh-demo-tasks-plugin"
+Documentation = "https://github.com/educationwarehouse/edwh-bundler-plugin#readme"
+Issues = "https://github.com/educationwarehouse/edwh-bundler-plugin/issues"
+Source = "https://github.com/educationwarehouse/edwh-bundler-plugin"
 
 # https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/#using-package-metadata
 [project.entry-points."edwh.tasks"]
-demo = "edwh_demo_plugin.demo_plugin"
+bundle = "edwh_bundler_plugin.bundler_plugin"
 
 [tool.hatch.version]
-path = "src/edwh_demo_plugin/__about__.py"
+path = "src/edwh_bundler_plugin/__about__.py"
 
 [tool.hatch.envs.default]
 dependencies = [
@@ -66,7 +67,7 @@ dependencies = [
   "ruff>=0.0.243",
 ]
 [tool.hatch.envs.lint.scripts]
-typing = "mypy --install-types --non-interactive {args:src/edwh_demo_plugin tests}"
+typing = "mypy --install-types --non-interactive {args:src/edwh_bundler_plugin tests}"
 style = [
   "ruff {args:.}",
   "black --check --diff {args:.}",
@@ -132,7 +133,7 @@ unfixable = [
 ]
 
 [tool.ruff.isort]
-known-first-party = ["edwh_demo_plugin"]
+known-first-party = ["edwh_bundler_plugin"]
 
 [tool.ruff.flake8-tidy-imports]
 ban-relative-imports = "all"
@@ -142,16 +143,16 @@ ban-relative-imports = "all"
 "tests/**/*" = ["PLR2004", "S101", "TID252"]
 
 [tool.coverage.run]
-source_pkgs = ["edwh_demo_plugin", "tests"]
+source_pkgs = ["edwh_bundler_plugin", "tests"]
 branch = true
 parallel = true
 omit = [
-  "src/edwh_demo_plugin/__about__.py",
+  "src/edwh_bundler_plugin/__about__.py",
 ]
 
 [tool.coverage.paths]
-edwh_demo_plugin = ["src/edwh_demo_plugin", "*/edwh-demo-plugin/src/edwh_demo_plugin"]
-tests = ["tests", "*/edwh-demo-plugin/tests"]
+edwh_bundler_plugin = ["src/edwh_bundler_plugin", "*/edwh-bundler-plugin/src/edwh_bundler_plugin"]
+tests = ["tests", "*/edwh-bundler-plugin/tests"]
 
 [tool.coverage.report]
 exclude_lines = [
