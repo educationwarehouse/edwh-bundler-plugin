@@ -4,11 +4,7 @@ from __future__ import annotations
 
 from functools import singledispatch
 
-from .lazy import JIT
-
-# will be installed by pre=[require_jsmin]
-jsmin = JIT("rjsmin", "jsmin")
-
+from rjsmin import jsmin
 
 from .shared import (
     extract_contents_cdn,

@@ -6,10 +6,7 @@ import os
 import re
 from functools import singledispatch
 from pathlib import Path
-
-from .lazy import JIT
-
-httpx = JIT("httpx")
+import httpx
 
 _CACHE_DIR = ".cdn_cache"
 CACHE_DIR = Path(_CACHE_DIR)

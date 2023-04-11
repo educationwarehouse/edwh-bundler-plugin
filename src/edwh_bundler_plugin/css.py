@@ -3,12 +3,7 @@ from __future__ import annotations
 
 from functools import singledispatch
 
-from .lazy import JIT
-
-# libsass
-# will be installed by pre=[require_sass]
-
-sass = JIT("sass")
+import sass
 
 from .shared import (
     extract_contents_cdn,

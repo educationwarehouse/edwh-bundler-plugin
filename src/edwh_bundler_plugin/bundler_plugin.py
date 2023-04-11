@@ -17,8 +17,8 @@ from invoke import task
 
 from .css import extract_contents_for_css
 from .js import extract_contents_for_js
-from .lazy import JIT
 from .shared import truthy
+from dotenv import load_dotenv
 
 now = datetime.utcnow
 
@@ -32,8 +32,6 @@ DEFAULT_OUTPUT_CSS = "bundle.css"
 TEMP_OUTPUT_DIR = "/tmp/bundle-build/"
 TEMP_OUTPUT = ".bundle_tmp"
 DEFAULT_ASSETS_DB = "py4web/apps/lts/databases/lts_assets.db"
-
-load_dotenv = JIT("dotenv", "load_dotenv")
 
 
 def load_config(fname: str = DEFAULT_INPUT, strict=False) -> dict:
@@ -181,39 +179,7 @@ def _handle_files(
     return output
 
 
-@task
-def require_jsmin(c):
-    try:
-        import rjsmin
-    except ImportError:
-        c.run("pip install rjsmin")
-
-
-@task
-def require_httpx(c):
-    try:
-        import httpx
-    except ImportError:
-        c.run("pip install httpx")
-
-
-@task
-def require_sass(c):
-    try:
-        import sass
-    except ImportError:
-        c.run("pip install pysass")
-
-
-@task
-def require_dotenv(c):
-    try:
-        import dotenv
-    except ImportError:
-        c.run("pip install python-dotenv")
-
-
-@task(iterable=["files"], pre=[require_jsmin, require_httpx])
+@task(iterable=["files"])
 def build_js(
     c,
     files=None,
@@ -246,7 +212,7 @@ def build_js(
         sys.stdout
         if stdout
         else cli_or_config(output, settings, "output_js", bool=False)
-        or DEFAULT_OUTPUT_JS
+             or DEFAULT_OUTPUT_JS
     )
 
     settings["version"] = cli_or_config(
@@ -306,7 +272,7 @@ def bundle_js(
         return output
 
 
-@task(iterable=["files"], pre=[require_sass, require_httpx])
+@task(iterable=["files"])
 def build_css(
     c,
     files=None,
@@ -336,7 +302,7 @@ def build_css(
         sys.stdout
         if stdout
         else cli_or_config(output, settings, "output_css", bool=False)
-        or DEFAULT_OUTPUT_CSS
+             or DEFAULT_OUTPUT_CSS
     )
 
     files = files or config.get("css")
@@ -399,7 +365,7 @@ def bundle_css(
         return output
 
 
-@task(iterable=["files"], pre=[require_sass, require_jsmin, require_httpx])
+@task(iterable=["files"])
 def build(
     c,
     input=DEFAULT_INPUT,
@@ -538,7 +504,7 @@ def prompt_changelog(db: sqlite3.Connection, filetype: str, version: str):
     print(f"https://py4web.{hostingdomain}/lts/manage_versions/edit/{idx}")
 
 
-@task(pre=[require_dotenv])
+@task()
 def show_changelog_url(c, filetype, version):
     db = setup_db(c)
     prompt_changelog(db, filetype, version)
@@ -548,7 +514,7 @@ def confirm(prompt: str, force=False) -> bool:
     return force or truthy(input(prompt))
 
 
-@task(pre=[require_dotenv, require_jsmin, require_sass, require_httpx])
+@task()
 def publish(
     c,
     version=None,
@@ -721,7 +687,6 @@ def reset(c):
     _update_assets_sql(c)
 
     assert db.execute("SELECT COUNT(*) as c FROM bundle_version;").fetchone()["c"] == 0
-
 
 # DEV:
 
