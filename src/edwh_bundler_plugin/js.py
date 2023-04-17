@@ -80,12 +80,7 @@ def _include_hyperscript(contents: str) -> str:
     """
     Execute the _hs file with the '_hyperscript' function, escaping some characters
     """
-    contents = (
-        contents.replace("\\", "\\\\")
-        .replace("`", "\\`")
-        .replace("$", "\\$")
-        .replace("{", "\\{")
-    )
+    contents = contents.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$").replace("{", "\\{")
 
     return f"_hyperscript(`{contents}`)"
 
@@ -102,12 +97,7 @@ def _append_to_head(css: str) -> str:
     """
     Append some CSS fragment at the end of the head of the page
     """
-    css = (
-        css.replace("\\", "\\\\")
-        .replace("`", "\\`")
-        .replace("$", "\\$")
-        .replace("{", "\\{")
-    )
+    css = css.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$").replace("{", "\\{")
     return f"document.head.innerHTML += `<style>{css}</style>`"
 
 

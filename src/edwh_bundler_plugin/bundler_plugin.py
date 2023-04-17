@@ -87,11 +87,7 @@ def cli_or_config(
                      but should probably be False for named arguments such as --filename ...
         default: if the option can be found in neither the cli arguments or the config file, what should the value be?
     """
-    return (
-        (truthy(value) if bool else value)
-        if value is not None
-        else config.get(key, default)
-    )
+    return (truthy(value) if bool else value) if value is not None else config.get(key, default)
 
 
 def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> str:
@@ -201,24 +197,15 @@ def build_js(
     files = files or config.get("js")
 
     if not files:
-        raise ValueError(
-            "Please specify either --files or the js key in a config yaml (e.g. bundle.yaml)"
-        )
+        raise ValueError("Please specify either --files or the js key in a config yaml (e.g. bundle.yaml)")
 
     settings = config.get("config", {})
 
     minify = cli_or_config(minify, settings, "minify")
     cache = cli_or_config(cache, settings, "cache", default=True)
-    output = (
-        sys.stdout
-        if stdout
-        else cli_or_config(output, settings, "output_js", bool=False)
-             or DEFAULT_OUTPUT_JS
-    )
+    output = sys.stdout if stdout else cli_or_config(output, settings, "output_js", bool=False) or DEFAULT_OUTPUT_JS
 
-    settings["version"] = cli_or_config(
-        version, settings, "version", bool=False, default="latest"
-    )
+    settings["version"] = cli_or_config(version, settings, "version", bool=False, default="latest")
 
     return _handle_files(
         files,
@@ -295,23 +282,14 @@ def build_css(
     minify = cli_or_config(minify, settings, "minify")
     cache = cli_or_config(cache, settings, "cache", default=True)
 
-    settings["version"] = cli_or_config(
-        version, settings, "version", bool=False, default="latest"
-    )
+    settings["version"] = cli_or_config(version, settings, "version", bool=False, default="latest")
 
-    output = (
-        sys.stdout
-        if stdout
-        else cli_or_config(output, settings, "output_css", bool=False)
-             or DEFAULT_OUTPUT_CSS
-    )
+    output = sys.stdout if stdout else cli_or_config(output, settings, "output_css", bool=False) or DEFAULT_OUTPUT_CSS
 
     files = files or config.get("css")
 
     if not files:
-        raise ValueError(
-            "Please specify either --files or the css key in a config yaml (e.g. bundle.yaml)"
-        )
+        raise ValueError("Please specify either --files or the css key in a config yaml (e.g. bundle.yaml)")
 
     return _handle_files(
         files,
@@ -436,9 +414,7 @@ def config_setting(key, default=None, config=None, config_path=None):
     return _fill_variables(var, re_settings)
 
 
-def setup_db(
-    c: invoke.context.Context, config_path=DEFAULT_INPUT_LTS
-) -> sqlite3.Connection:
+def setup_db(c: invoke.context.Context, config_path=DEFAULT_INPUT_LTS) -> sqlite3.Connection:
     db_path = config_setting("output_db", DEFAULT_ASSETS_DB, config_path=config_path)
     sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL, config_path=config_path)
 
@@ -494,9 +470,7 @@ def insert_version(c: invoke.context.Context, db: sqlite3.Connection, values: di
 
 
 def version_exists(db: sqlite3.Connection, filetype: str, version: str):
-    query = (
-        "SELECT COUNT(*) as c FROM bundle_version WHERE filetype = ? AND version = ?;"
-    )
+    query = "SELECT COUNT(*) as c FROM bundle_version WHERE filetype = ? AND version = ?;"
 
     return db.execute(query, (filetype, version)).fetchone()["c"] > 0
 
@@ -504,9 +478,7 @@ def version_exists(db: sqlite3.Connection, filetype: str, version: str):
 def prompt_changelog(db: sqlite3.Connection, filetype: str, version: str):
     load_dotenv()
 
-    query = (
-        "SELECT id, changelog FROM bundle_version WHERE filetype = ? AND version = ?;"
-    )
+    query = "SELECT id, changelog FROM bundle_version WHERE filetype = ? AND version = ?;"
     row = db.execute(query, (filetype, version)).fetchone()
     if row["changelog"]:
         print("Changelog already filled in! ", "It can be updated at:")
@@ -556,9 +528,7 @@ def publish(
         version = input("Which version would you like to publish? ")
     elif not XOR(version, major, minor, patch):
         # error on more than one:
-        raise ValueError(
-            "Please specify only one of --version, --major, --minor or --patch"
-        )
+        raise ValueError("Please specify only one of --version, --major, --minor or --patch")
     elif major:
         new_major = previous.get("major", 0) + 1
         version = f"{new_major}.0.0"
@@ -574,9 +544,7 @@ def publish(
 
     version_re = re.compile(r"^(\d{1,3})(\.\d{1,3})?(\.\d{1,3})?$")
     if not (groups := version_re.findall(version)):
-        raise ValueError(
-            f"Invalid version {version}. Please use the format major.major.patch (e.g. 3.5.0)"
-        )
+        raise ValueError(f"Invalid version {version}. Please use the format major.major.patch (e.g. 3.5.0)")
 
     major, minor, patch = (
         int(groups[0][0]),
@@ -703,6 +671,7 @@ def reset(c):
     _update_assets_sql(c)
 
     assert db.execute("SELECT COUNT(*) as c FROM bundle_version;").fetchone()["c"] == 0
+
 
 # DEV:
 
