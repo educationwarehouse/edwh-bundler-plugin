@@ -24,6 +24,13 @@ classifiers = [
 ]
 dependencies = ['invoke', 'python-dotenv', 'pysass', 'rjsmin', 'httpx', 'pyyaml']
 
+[project.optional-dependencies]
+dev = [
+  "hatch",
+  "python-semantic-release",
+  "black",
+]
+
 [project.urls]
 Documentation = "https://github.com/educationwarehouse/edwh-bundler-plugin#readme"
 Issues = "https://github.com/educationwarehouse/edwh-bundler-plugin/issues"
