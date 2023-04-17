@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.5 (2023-04-17)
+
+
 ## v0.1.4 (2023-04-17)
 ### Fix
 * **project:** Remove theoretical support for Python versions below 3.10 since that has never worked ([`daa3e39`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/daa3e39abe7627a09c93ccfeb42e164612c14b6c))
