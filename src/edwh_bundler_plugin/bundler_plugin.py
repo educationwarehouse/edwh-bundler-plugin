@@ -13,12 +13,12 @@ from datetime import datetime
 
 import invoke
 import yaml
-from invoke import task
+from invoke import task, Context
+from dotenv import load_dotenv
 
 from .css import extract_contents_for_css
 from .js import extract_contents_for_js
 from .shared import truthy
-from dotenv import load_dotenv
 
 now = datetime.utcnow
 
@@ -31,7 +31,8 @@ DEFAULT_OUTPUT_JS = "bundle.js"
 DEFAULT_OUTPUT_CSS = "bundle.css"
 TEMP_OUTPUT_DIR = "/tmp/bundle-build/"
 TEMP_OUTPUT = ".bundle_tmp"
-DEFAULT_ASSETS_DB = "py4web/apps/lts/databases/lts_assets.db"
+DEFAULT_ASSETS_DB = "/tmp/lts_assets.db"
+DEFAULT_ASSETS_SQL = "py4web/apps/lts/databases/lts_assets.sql"
 
 
 def load_config(fname: str = DEFAULT_INPUT, strict=False) -> dict:
@@ -408,11 +409,23 @@ def dict_factory(cursor, row):
     return d
 
 
-def assert_chmod_777(c: invoke.context.Context, filepath: str):
-    resp = c.run(f'stat --format "%a  %n" {filepath}', hide=True)
-    chmod = resp.stdout.split(" ")[0]
-    if chmod != 777:
-        c.sudo(f"chmod 777 {filepath}")
+def assert_chmod_777(c: Context, filepath: str | list[str]):
+    if isinstance(filepath, str):
+        filepaths = [filepath]
+    else:
+        filepaths = filepath
+
+    for filepath in filepaths:
+        resp = c.run(f'stat --format "%a  %n" {filepath}', hide=True)
+        chmod = resp.stdout.split(" ")[0]
+        if chmod != 777:
+            c.sudo(f"chmod 777 {filepath}")
+
+
+def assert_file_exists(c: Context, db_filepath: str, sql_filepath: str):
+    if not os.path.exists(db_filepath):
+        # load existing
+        c.run(f"sqlite3 {db_filepath} < {sql_filepath}")
 
 
 def config_setting(key, default=None, config=None, config_path=None):
@@ -427,8 +440,10 @@ def setup_db(
     c: invoke.context.Context, config_path=DEFAULT_INPUT_LTS
 ) -> sqlite3.Connection:
     db_path = config_setting("output_db", DEFAULT_ASSETS_DB, config_path=config_path)
+    sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL, config_path=config_path)
 
-    assert_chmod_777(c, db_path)
+    assert_file_exists(c, db_path, sql_path)
+    assert_chmod_777(c, [db_path, sql_path])
     con = sqlite3.connect(db_path)
     con.row_factory = dict_factory
     return con
@@ -453,9 +468,10 @@ def _update_assets_sql(c: invoke.context.Context):
     """
     # for line in db.iterdump():
     db_path = config_setting("output_db", DEFAULT_ASSETS_DB)
+    sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL)
+
     sql: invoke.Result = c.run(f"sqlite3 {db_path} .dump", hide=True)
 
-    sql_path = db_path.replace(".db", ".sql")
     with open(sql_path, "w", encoding="UTF-8") as f:
         f.write(sql.stdout)
 
