@@ -15,6 +15,7 @@ import invoke
 import yaml
 from invoke import task, Context
 from dotenv import load_dotenv
+from shutil import rmtree
 
 from .css import extract_contents_for_css
 from .js import extract_contents_for_js
@@ -42,9 +43,9 @@ def load_config(fname: str = DEFAULT_INPUT, strict=False) -> dict:
     if os.path.exists(fname):
         with open(fname) as f:
             return yaml.load(f, yaml.Loader)
+    elif strict:
+        raise FileNotFoundError(fname)
     else:
-        if strict:
-            raise FileNotFoundError(fname)
         return {}
 
 
@@ -253,11 +254,11 @@ def bundle_js(
         settings=settings,
     )
 
-    if isinstance(output, io.StringIO):
-        output.seek(0)
-        return output.read()
-    else:
+    if not isinstance(output, io.StringIO):
         return output
+
+    output.seek(0)
+    return output.read()
 
 
 @task(iterable=["files"])
@@ -286,9 +287,7 @@ def build_css(
 
     output = sys.stdout if stdout else cli_or_config(output, settings, "output_css", bool=False) or DEFAULT_OUTPUT_CSS
 
-    files = files or config.get("css")
-
-    if not files:
+    if not (files := (files or config.get("css"))):
         raise ValueError("Please specify either --files or the css key in a config yaml (e.g. bundle.yaml)")
 
     return _handle_files(
@@ -337,11 +336,11 @@ def bundle_css(
         settings=settings,
     )
 
-    if isinstance(output, io.StringIO):
-        output.seek(0)
-        return output.read()
-    else:
+    if not isinstance(output, io.StringIO):
         return output
+
+    output.seek(0)
+    return output.read()
 
 
 @task(iterable=["files"])
@@ -379,12 +378,7 @@ def XOR(first, *extra):
 
 
 def dict_factory(cursor, row):
-    # https://stackoverflow.com/questions/3300464/how-can-i-get-dict-from-sqlite-query
-
-    d = {}
-    for idx, col in enumerate(cursor.description):
-        d[col[0]] = row[idx]
-    return d
+    return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
 
 
 def assert_chmod_777(c: Context, filepath: str | list[str]):
@@ -502,6 +496,41 @@ def confirm(prompt: str, force=False) -> bool:
     return force or truthy(input(prompt))
 
 
+def _decide_new_version(major: int, minor: int, patch: int, previous: dict, version: str):
+    if not any((version, major, minor, patch)):
+        print("Previous version is:", previous.get("version", "0.0.0"))
+        version = input("Which version would you like to publish? ")
+    elif not XOR(version, major, minor, patch):
+        # error on more than one:
+        raise ValueError("Please specify only one of --version, --major, --minor or --patch")
+    elif major:
+        new_major = previous.get("major", 0) + 1
+        version = f"{new_major}.0.0"
+    elif minor:
+        major = previous.get("major", 0)
+        new_minor = previous.get("minor", 0) + 1
+        version = f"{major}.{new_minor}.0"
+    elif patch:
+        major = previous.get("major", 0)
+        minor = previous.get("minor", 0)
+        new_patch = previous.get("patch", 0) + 1
+        version = f"{major}.{minor}.{new_patch}"
+    version_re = re.compile(r"^(\d{1,3})(\.\d{1,3})?(\.\d{1,3})?$")
+    if not (groups := version_re.findall(version)):
+        raise ValueError(f"Invalid version {version}. Please use the format major.major.patch (e.g. 3.5.0)")
+    major, minor, patch = (
+        int(groups[0][0]),
+        int(groups[0][1].strip(".") or 0),
+        int(groups[0][2].strip(".") or 0),
+    )
+    version = f"{major}.{minor}.{patch}"
+    return major, minor, patch, version
+
+
+def file_hash(c: Context, filename: str):
+    return c.run(f"sha1sum {filename}", hide=True).stdout.split(" ")[0]
+
+
 @task()
 def publish(
     c,
@@ -523,36 +552,7 @@ def publish(
     if not os.path.exists(TEMP_OUTPUT_DIR):
         os.mkdir(TEMP_OUTPUT_DIR)
 
-    if not any((version, major, minor, patch)):
-        print("Previous version is:", previous.get("version", "0.0.0"))
-        version = input("Which version would you like to publish? ")
-    elif not XOR(version, major, minor, patch):
-        # error on more than one:
-        raise ValueError("Please specify only one of --version, --major, --minor or --patch")
-    elif major:
-        new_major = previous.get("major", 0) + 1
-        version = f"{new_major}.0.0"
-    elif minor:
-        major = previous.get("major", 0)
-        new_minor = previous.get("minor", 0) + 1
-        version = f"{major}.{new_minor}.0"
-    elif patch:
-        major = previous.get("major", 0)
-        minor = previous.get("minor", 0)
-        new_patch = previous.get("patch", 0) + 1
-        version = f"{major}.{minor}.{new_patch}"
-
-    version_re = re.compile(r"^(\d{1,3})(\.\d{1,3})?(\.\d{1,3})?$")
-    if not (groups := version_re.findall(version)):
-        raise ValueError(f"Invalid version {version}. Please use the format major.major.patch (e.g. 3.5.0)")
-
-    major, minor, patch = (
-        int(groups[0][0]),
-        int(groups[0][1].strip(".") or 0),
-        int(groups[0][2].strip(".") or 0),
-    )
-
-    version = f"{major}.{minor}.{patch}"
+    major, minor, patch, version = _decide_new_version(major, minor, patch, previous, version)
 
     if js and version_exists(db, "js", version):
         print(f"JS Version {version} already exists!")
@@ -562,30 +562,17 @@ def publish(
         print(f"CSS Version {version} already exists!")
         css = confirm("Are you sure you want to overwrite it? ", force)
 
+    output_js = output_css = None
     if js and css:
         output_js, output_css = build(c, input=config, version=version, verbose=verbose)
     elif js:
         output_js = build_js(c, input=config, version=version, verbose=verbose)
-        output_css = None
     elif css:
         output_css = build_css(c, input=config, version=version, verbose=verbose)
-        output_js = None
-    else:
-        # no build
-        output_css = output_js = None
+    # else: no build
 
     if output_js:
-        with open(output_js, "r", encoding="UTF-8") as f:
-            file_contents = f.read()
-
-        filename = output_js.split("/")[-1]
-        hash = c.run(f"sha1sum {output_js}", hide=True).stdout.split(" ")[0]
-
-        if hash == previous.get("hash"):
-            print("JS hash matches previous version.")
-            go = confirm("Are you sure you want to release a new version? ", force)
-        else:
-            go = True
+        go, hash, filename, file_contents = _should_publish(c, force, output_js, previous.get("hash"), "JS")
 
         if go:
             insert_version(
@@ -608,19 +595,8 @@ def publish(
             prompt_changelog(db, "js", version)
 
     if output_css:
-        with open(output_css, "r", encoding="UTF-8") as f:
-            file_contents = f.read()
-
         previous_css = get_latest_version(db, "css")
-
-        filename = output_css.split("/")[-1]
-        hash = c.run(f"sha1sum {output_css}", hide=True).stdout.split(" ")[0]
-
-        if hash == previous_css.get("hash"):
-            print("CSS hash matches previous version.")
-            go = confirm("Are you sure you want to release a new version? ", force)
-        else:
-            go = True
+        go, hash, filename, file_contents = _should_publish(c, force, output_css, previous_css.get("hash"), "CSS")
 
         if go:
             insert_version(
@@ -642,12 +618,30 @@ def publish(
             print(f"CSS version {version} published.")
             prompt_changelog(db, "css", version)
 
-    from shutil import rmtree
-
     rmtree(TEMP_OUTPUT_DIR)
 
     # after publish: run `up -s py4web` so the bjoerns are all updated
     c.run("inv up -s py4web")
+
+
+def _should_publish(c: Context, force: bool, output_path: str, previous_hash: str, type: typing.Literal["JS", "CSS"]):
+    hash = file_hash(c, output_path)
+    if hash == previous_hash:
+        print(f"{type} hash matches previous version.")
+        go = confirm("Are you sure you want to release a new version? ", force)
+    else:
+        go = True
+    if not go:
+        return False, None, None, None
+
+    # if go:
+
+    with open(output_path, "r", encoding="UTF-8") as f:
+        file_contents = f.read()
+
+    filename = output_path.split("/")[-1]
+
+    return True, hash, filename, file_contents
 
 
 @task
