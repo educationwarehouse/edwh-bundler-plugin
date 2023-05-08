@@ -73,7 +73,7 @@ def cli_or_config(
     value: typing.Any,
     config: dict,
     key: typing.Hashable,
-    bool=True,
+    bool: bool = True,
     default: typing.Any = None,
 ) -> bool | typing.Any:
     """
@@ -84,14 +84,29 @@ def cli_or_config(
         value: the value from cli, will override config if anything other than None
         config: the 'config' section of the config yaml
         key: config key to look in (under the 'config' section)
-        bool: should the result alwasy be a boolean? Useful cli arguments such as --cache y,
+        bool: should the result always be a boolean? Useful cli arguments such as --cache y,
                      but should probably be False for named arguments such as --filename ...
         default: if the option can be found in neither the cli arguments or the config file, what should the value be?
     """
     return (truthy(value) if bool else value) if value is not None else config.get(key, default)
 
 
-def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> str:
+@typing.overload
+def _fill_variables(setting: str, variables: dict[re.Pattern, str]) -> str:
+    """
+    If a string is passed as setting, the $variables in the string are filled.
+    E.g. "$in_app/path/to/css" + {'in_app': 'apps/cmsx'} -> 'apps/cmsx/path/to/css'
+    """
+
+
+@typing.overload
+def _fill_variables(setting: dict, variables: dict[re.Pattern, str]) -> dict[str, str]:
+    """
+    If a dict of settings is passed, all values are filled. Keys are left alone.
+    """
+
+
+def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> str | dict[str, str]:
     """
     Fill in $variables in a dynamic setting.
     E.g. "$in_app/path/to/css" + {'in_app': 'apps/cmsx'} -> 'apps/cmsx/path/to/css'
@@ -109,7 +124,10 @@ def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> st
     return setting
 
 
-def _regexify_settings(setting_dict: dict) -> dict:
+def _regexify_settings(setting_dict: dict[str, typing.Any]) -> dict[re.Pattern, typing.Any]:
+    """
+    Convert a dict keys from string to a compiled regex pattern (/$string/)
+    """
     return {re.compile(rf"\${key}"): value for key, value in setting_dict.items()}
 
 
@@ -446,7 +464,7 @@ def _update_assets_sql(c: invoke.context.Context):
         f.write(sql.stdout)
 
 
-@task
+@task()
 def update_assets_sql(c):
     # db = setup_db(c)
     _update_assets_sql(c)
@@ -644,7 +662,7 @@ def _should_publish(c: Context, force: bool, output_path: str, previous_hash: st
     return True, hash, filename, file_contents
 
 
-@task
+@task()
 def list(c):
     db = setup_db(c)
     for row in db.execute(
@@ -653,13 +671,15 @@ def list(c):
         print(row)
 
 
-@task
+@task()
 def reset(c):
     db = setup_db(c)
     if not confirm("Are you sure you want to reset the versions database? "):
         print("Wise.")
         return
 
+    # noinspection SqlWithoutWhere
+    # ^ that's the whole point of 'reset'.
     db.execute("DELETE FROM bundle_version;")
     db.commit()
     _update_assets_sql(c)
