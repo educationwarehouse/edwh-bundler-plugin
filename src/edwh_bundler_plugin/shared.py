@@ -44,23 +44,22 @@ def extract_contents_cdn(url: str, cache=True) -> str:
         url (str): online resource location
         cache (bool): use .cdn_cache if possible?
     """
-    if cache:
-        h_url = str(cache_hash(url))
-
-        cache_path = CACHE_DIR / h_url
-        if cache_path.exists():
-            return extract_contents_local(str(cache_path))
-        else:
-            _resp = _extract_contents_cdn(url)
-
-            if not CACHE_DIR.exists():
-                os.mkdir(CACHE_DIR)
-
-            with open(cache_path, "w") as f:
-                f.write(_resp)
-            return _resp
-    else:
+    if not cache:
         return _extract_contents_cdn(url)
+
+    h_url = str(cache_hash(url))
+
+    cache_path = CACHE_DIR / h_url
+    if cache_path.exists():
+        return extract_contents_local(str(cache_path))
+    _resp = _extract_contents_cdn(url)
+
+    if not CACHE_DIR.exists():
+        os.mkdir(CACHE_DIR)
+
+    with open(cache_path, "w") as f:
+        f.write(_resp)
+    return _resp
 
 
 def extract_contents_local(path: str) -> str:
