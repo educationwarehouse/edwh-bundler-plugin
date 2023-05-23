@@ -400,16 +400,13 @@ def dict_factory(cursor, row):
 
 
 def assert_chmod_777(c: Context, filepath: str | list[str]):
-    if isinstance(filepath, str):
-        filepaths = [filepath]
-    else:
-        filepaths = filepath
+    filepaths: list[str] = [filepath] if isinstance(filepath, str) else filepath
 
-    for filepath in filepaths:
-        resp = c.run(f'stat --format "%a  %n" {filepath}', hide=True)
+    for fp in filepaths:
+        resp = c.run(f'stat --format "%a  %n" {fp}', hide=True)
         chmod = resp.stdout.split(" ")[0]
         if chmod != 777:
-            c.sudo(f"chmod 777 {filepath}")
+            c.sudo(f"chmod 777 {fp}")
 
 
 def assert_file_exists(c: Context, db_filepath: str, sql_filepath: str):
@@ -545,7 +542,7 @@ def _decide_new_version(major: int, minor: int, patch: int, previous: dict, vers
     return major, minor, patch, version
 
 
-def file_hash(c: Context, filename: str):
+def calculate_file_hash(c: Context, filename: str):
     return c.run(f"sha1sum {filename}", hide=True).stdout.split(" ")[0]
 
 
@@ -643,8 +640,8 @@ def publish(
 
 
 def _should_publish(c: Context, force: bool, output_path: str, previous_hash: str, type: typing.Literal["JS", "CSS"]):
-    hash = file_hash(c, output_path)
-    if hash == previous_hash:
+    file_hash = calculate_file_hash(c, output_path)
+    if file_hash == previous_hash:
         print(f"{type} hash matches previous version.")
         go = confirm("Are you sure you want to release a new version? ", force)
     else:
@@ -659,11 +656,11 @@ def _should_publish(c: Context, force: bool, output_path: str, previous_hash: st
 
     filename = output_path.split("/")[-1]
 
-    return True, hash, filename, file_contents
+    return True, file_hash, filename, file_contents
 
 
-@task()
-def list(c):
+@task(name="list")
+def list_versions(c):
     db = setup_db(c)
     for row in db.execute(
         "SELECT filetype, version FROM bundle_version ORDER BY major DESC, minor DESC, patch DESC"
