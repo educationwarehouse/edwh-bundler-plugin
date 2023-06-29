@@ -8,8 +8,11 @@ import re
 import sqlite3
 import sys
 import typing
+import warnings
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 import invoke
 import yaml
@@ -59,10 +62,15 @@ def start_buffer(temp: str | typing.IO = TEMP_OUTPUT) -> typing.IO:
         yield temp
         return
 
-    if os.path.exists(temp):
-        os.remove(temp)
+    path = Path(temp)
 
-    f = open(temp, "a")
+    if path.exists():
+        path.unlink()
+
+    # ensure the path to the file exists:
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    f = path.open("a")
     try:
         yield f
     finally:
@@ -216,7 +224,7 @@ def build_js(
     files = files or config.get("js")
 
     if not files:
-        raise ValueError("Please specify either --files or the js key in a config yaml (e.g. bundle.yaml)")
+        raise NotFound("js")
 
     settings = config.get("config", {})
 
@@ -279,6 +287,14 @@ def bundle_js(
     return output.read()
 
 
+@dataclass
+class NotFound(Exception):
+    type: typing.Literal["js", "css"]
+
+    def __str__(self):
+        return f"Please specify either --files or the {self.type} key in a config yaml (e.g. bundle.yaml)"
+
+
 @task(iterable=["files"])
 def build_css(
     c,
@@ -306,7 +322,7 @@ def build_css(
     output = sys.stdout if stdout else cli_or_config(output, settings, "output_css", bool=False) or DEFAULT_OUTPUT_CSS
 
     if not (files := (files or config.get("css"))):
-        raise ValueError("Please specify either --files or the css key in a config yaml (e.g. bundle.yaml)")
+        raise NotFound("css")
 
     return _handle_files(
         files,
@@ -381,10 +397,21 @@ def build(
     # second argument of build_ is None, so files will be loaded from config.
     # --files can be supplied for the build-js or build-css methods, but not for normal build
     # since it would be too ambiguous to determine whether the files should be compiled as JS or CSS.
-    return (
-        build_js(c, None, input, verbose, output_js, minify, cache, version),
-        build_css(c, None, input, verbose, output_css, minify, cache, version),
-    )
+    result = []
+    try:
+        result.append(build_js(c, None, input, verbose, output_js, minify, cache, version))
+    except NotFound as e:
+        warnings.warn(str(e), source=e)
+
+    try:
+        result.append(
+            build_css(c, None, input, verbose, output_css, minify, cache, version),
+        )
+    except NotFound as e:
+        warnings.warn(str(e), source=e)
+
+    print(result)
+    return result
 
 
 def XOR(first, *extra):
