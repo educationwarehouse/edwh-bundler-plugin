@@ -6,5 +6,6 @@ css:
 config:
   minify: 1
   filename: bundled
-  output_css: static/css/$filename-$version.css
+  output-css: static/css/$filename-$version.css
   output_js: static/js/$filename-$version.js
+  hash: 1
