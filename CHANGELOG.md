@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.7 (2023-06-29)
+### Fix
+* Don't crash if the output folder doesn't exist yet ([`630342d`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/630342dd149a0120cd003c6c09d7f1238797d3a5))
+
+## v0.1.6 (2023-05-31)
+
+
 ## v0.1.5 (2023-04-17)
 
 
