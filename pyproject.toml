@@ -40,6 +40,15 @@ Source = "https://github.com/educationwarehouse/edwh-bundler-plugin"
 [project.entry-points."edwh.tasks"]
 bundle = "edwh_bundler_plugin.bundler_plugin"
 
+[tool.edwh.bundle]
+minify = true
+save-hash = true
+filename = "bundled"
+output_css = "$out_app/static/css/$filename-$version.css"
+output_js = "$out_app/static/js/$filename-$version.js"
+out_app = "py4web/apps/beanmeup"
+in_app = "py4web/apps/beanmeup"
+
 [tool.hatch.version]
 path = "src/edwh_bundler_plugin/__about__.py"
 

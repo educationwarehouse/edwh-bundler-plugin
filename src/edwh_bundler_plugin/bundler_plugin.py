@@ -36,13 +36,32 @@ DEFAULT_ASSETS_DB = "/tmp/lts_assets.db"
 DEFAULT_ASSETS_SQL = "py4web/apps/lts/databases/lts_assets.sql"
 
 
+def convert_yaml_data(data: dict[str, typing.Any] | list[typing.Any] | typing.Any):
+    """
+    Recursively replace "-" in keys to "_"
+    """
+    if isinstance(data, dict):
+        return {key.replace("-", "_"): convert_yaml_data(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_yaml_data(value) for value in data]
+    else:
+        # normal value, don't change!
+        return data
+
+
+def _load_config_yaml(fname: str):
+    with open(fname) as f:
+        data = yaml.load(f, yaml.Loader)
+
+    return convert_yaml_data(data)
+
+
 def load_config(fname: str = DEFAULT_INPUT, strict=False) -> dict:
     """
     Load yaml config from file name, default to empty or error if strict
     """
-    if os.path.exists(fname):
-        with open(fname) as f:
-            return yaml.load(f, yaml.Loader)
+    if os.path.exists(fname) and fname.endswith((".yml", ".yaml")):
+        return _load_config_yaml(fname)
     elif strict:
         raise FileNotFoundError(fname)
     else:
