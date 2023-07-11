@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.0 (2023-07-11)
+### Feature
+* Support .toml and pyproject.toml with key tool.edwh.bundle ([`2ef6196`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/2ef6196264b7703cb73c28ce0bb56ce4bb498447))
+* Allow `hash (bool)` option in config to store a .hash file of generated bundles ([`81d7720`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/81d7720ef6b50626542730ba511ecd3463e477ef))
+* Made config a little more flexible by allowing '-' as well as '_' as a word seperator in keys ([`8a20fd8`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/8a20fd83e02e11153d36c623d8b214e0aa5f95b1))
+
 ## v0.1.7 (2023-06-29)
 ### Fix
 * Don't crash if the output folder doesn't exist yet ([`630342d`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/630342dd149a0120cd003c6c09d7f1238797d3a5))
