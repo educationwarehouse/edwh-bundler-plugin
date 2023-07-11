@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 import invoke
+import tomlkit
 import yaml
 from invoke import task, Context
 from dotenv import load_dotenv
@@ -39,14 +40,14 @@ DEFAULT_ASSETS_DB = "/tmp/lts_assets.db"
 DEFAULT_ASSETS_SQL = "py4web/apps/lts/databases/lts_assets.sql"
 
 
-def convert_yaml_data(data: dict[str, typing.Any] | list[typing.Any] | typing.Any):
+def convert_data(data: dict[str, typing.Any] | list[typing.Any] | typing.Any):
     """
     Recursively replace "-" in keys to "_"
     """
     if isinstance(data, dict):
-        return {key.replace("-", "_"): convert_yaml_data(value) for key, value in data.items()}
+        return {key.replace("-", "_"): convert_data(value) for key, value in data.items()}
     elif isinstance(data, list):
-        return [convert_yaml_data(value) for value in data]
+        return [convert_data(value) for value in data]
     else:
         # normal value, don't change!
         return data
@@ -56,19 +57,54 @@ def _load_config_yaml(fname: str):
     with open(fname) as f:
         data = yaml.load(f, yaml.Loader)
 
-    return convert_yaml_data(data)
+    return convert_data(data)
 
 
-def load_config(fname: str = DEFAULT_INPUT, strict=False) -> dict:
+def _load_config_toml(fname: str, key: str = ""):
+    with open(fname) as f:
+        data = tomlkit.load(f)
+
+    if key:
+        for part in key.split("."):
+            data = data.get(part)
+            if data is None:
+                # key not found in toml!
+                return {}
+
+    return convert_data(data)
+
+
+def _load_config(fname: str = DEFAULT_INPUT, strict=False) -> tuple[str, dict]:
     """
     Load yaml config from file name, default to empty or error if strict
     """
     if os.path.exists(fname) and fname.endswith((".yml", ".yaml")):
-        return _load_config_yaml(fname)
+        # load default or user-defined yaml
+        return fname, _load_config_yaml(fname)
+    elif os.path.exists(fname) and fname.endswith(".toml"):
+        # load user defined toml
+        return fname, _load_config_toml(fname)
+    elif fname == DEFAULT_INPUT and (altname := DEFAULT_INPUT.replace(".yaml", ".toml")) and os.path.exists(altname):
+        # try bundle.toml
+        return altname, _load_config_toml(altname)
+    elif (altname := "pyproject.toml") and os.path.exists(altname):
+        # look in pyproject
+        return altname, _load_config_toml(altname, key="tool.edwh.bundle")
     elif strict:
+        # err !
         raise FileNotFoundError(fname)
     else:
-        return {}
+        # fallback to empty config
+        return "", {}
+
+
+def load_config(fname: str = DEFAULT_INPUT, strict=True) -> dict:
+    file_used, data = _load_config(fname, strict=strict)
+    if not data and strict:
+        # empty config!
+        raise ValueError(f"Config data found for `{file_used}` was empty!")
+
+    return data or {}
 
 
 @contextmanager
