@@ -33,7 +33,7 @@ def convert_scss(contents: str, minify=True) -> str:
 
 
 @singledispatch
-def extract_contents_for_css(file, cache=True, minify=True, scss=True) -> str:
+def extract_contents_for_css(file, cache=True, minify=True) -> str:
     """
     'file' is one line in the 'css' part of the config yaml.
     > singledispatch executes a different method based on the Type of the variable 'file'
@@ -44,7 +44,6 @@ def extract_contents_for_css(file, cache=True, minify=True, scss=True) -> str:
                             If 'scope' is provided, all classes will be prefixed in that parent selector.
         cache (bool): get CDN files from local cache
         minify (bool): minify file (remove newlines in the case of CSS)
-        scss (bool): convert scss to css if filetype indicates it should
 
     Returns: string of contents to write to the css bundle
 
@@ -53,7 +52,7 @@ def extract_contents_for_css(file, cache=True, minify=True, scss=True) -> str:
 
 
 @extract_contents_for_css.register
-def _(file: str, cache=True, minify=True, scss=True):
+def _(file: str, cache=True, minify=True):
     """
     Version of 'extract_contents_for_css' for when file is a string (-> file/url path)
     """
@@ -77,7 +76,7 @@ def _(file: str, cache=True, minify=True, scss=True):
 
 
 @extract_contents_for_css.register
-def _(file: dict, cache=True, minify=True, scss=True):
+def _(file: dict, cache=True, minify=True):
     """
     Version of extract_contents_for_css for when a dict is supplied in the config yaml.
 
@@ -89,7 +88,7 @@ def _(file: dict, cache=True, minify=True, scss=True):
         scss: 1
     """
     f = file["file"]
-    contents = extract_contents_for_css(f, cache=cache, minify=minify, scss=False)
+    contents = extract_contents_for_css(f, cache=cache, minify=minify)
 
     scss = truthy(file.get("scss")) or f.endswith(".scss")
 
