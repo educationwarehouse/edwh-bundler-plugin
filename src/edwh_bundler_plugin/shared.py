@@ -6,7 +6,7 @@ import os
 import re
 from functools import singledispatch
 from pathlib import Path
-import httpx
+import requests
 
 _CACHE_DIR = ".cdn_cache"
 CACHE_DIR = Path(_CACHE_DIR)
@@ -24,7 +24,7 @@ def _extract_contents_cdn(url: str) -> str:
     """
     Download contents from some url
     """
-    return httpx.get(url, follow_redirects=True, timeout=10).text
+    return requests.get(url, allow_redirects=True, timeout=10).text
 
 
 def cache_hash(filename: str) -> str:
@@ -68,7 +68,6 @@ def extract_contents_local(path: str) -> str:
     """
     with open(path) as f:
         return f.read()
-
 
 @singledispatch
 def truthy(val) -> bool:

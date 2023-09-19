@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ['invoke', 'python-dotenv', 'pysass', 'rjsmin', 'httpx', 'pyyaml']
+dependencies = ['invoke', 'python-dotenv', 'pysass', 'rjsmin', 'requests', 'pyyaml']
 
 [project.optional-dependencies]
 dev = [
