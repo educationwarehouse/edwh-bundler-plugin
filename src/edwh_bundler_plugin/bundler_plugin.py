@@ -13,13 +13,13 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from shutil import rmtree
 
 import invoke
 import tomlkit
 import yaml
-from invoke import task, Context
 from dotenv import load_dotenv
-from shutil import rmtree
+from invoke import Context, task
 
 from .css import extract_contents_for_css
 from .js import extract_contents_for_js

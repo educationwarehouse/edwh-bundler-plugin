@@ -6,6 +6,7 @@ import os
 import re
 from functools import singledispatch
 from pathlib import Path
+
 import requests
 
 _CACHE_DIR = ".cdn_cache"
@@ -68,6 +69,7 @@ def extract_contents_local(path: str) -> str:
     """
     with open(path) as f:
         return f.read()
+
 
 @singledispatch
 def truthy(val) -> bool:

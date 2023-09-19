@@ -1,18 +1,11 @@
 # methods for converting JS and hyperscript files
-
 from __future__ import annotations
 
 from functools import singledispatch
 
 from rjsmin import jsmin
 
-from .shared import (
-    extract_contents_cdn,
-    extract_contents_local,
-    HS_COMMENT_RE,
-    DOUBLE_SPACE_RE,
-    _del_whitespace,
-)
+from .shared import DOUBLE_SPACE_RE, HS_COMMENT_RE, _del_whitespace, extract_contents_cdn, extract_contents_local
 
 
 @singledispatch

@@ -1,16 +1,18 @@
 # methods for converting CSS files
 from __future__ import annotations
 
+import typing
 from functools import singledispatch
 
-import sass
+from .lazy import JIT
+from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local, truthy
 
-from .shared import (
-    extract_contents_cdn,
-    extract_contents_local,
-    truthy,
-    _del_whitespace,
-)
+if typing.TYPE_CHECKING:
+    import sass
+else:
+    # sass is a slow import, so only import it when actually required by the code!
+    # (and not during `edwh` startup)
+    sass = JIT("sass")
 
 
 def convert_scss(contents: str, minify=True) -> str:
