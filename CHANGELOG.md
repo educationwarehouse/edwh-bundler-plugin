@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.2 (2023-09-19)
+### Performance
+* **sass:** Re-introduced JIT imports to slightly speed up plugin ([`4433ae9`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/4433ae9cb3075e0ceb8b06ca7b09845b960aac89))
+
 ## v0.2.1 (2023-09-19)
 ### Performance
 * **httpx:** Replaced httpx with requests because the import was very slow (150ms) ([`f51d1e9`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/f51d1e9dfe89bd6caa4ac782f09414d63beaa151))
