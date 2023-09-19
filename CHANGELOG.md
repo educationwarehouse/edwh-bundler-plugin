@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.1 (2023-09-19)
+### Performance
+* **httpx:** Replaced httpx with requests because the import was very slow (150ms) ([`f51d1e9`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/f51d1e9dfe89bd6caa4ac782f09414d63beaa151))
+
 ## v0.2.0 (2023-07-11)
 ### Feature
 * Support .toml and pyproject.toml with key tool.edwh.bundle ([`2ef6196`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/2ef6196264b7703cb73c28ce0bb56ce4bb498447))
