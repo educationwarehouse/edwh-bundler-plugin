@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.5 (2023-09-20)
+### Fix
+* Include the scss path so imports are resolved properly ([`427ff92`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/427ff92ae5479c5585733d05ec2acfa66f52a952))
+
 ## v0.2.4 (2023-09-20)
 ### Fix
 * **sass:** Actually support sass next to scss ([`1e5cd99`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/1e5cd9985c8a9fee45bce46c64b1fa9b0b019c57))
