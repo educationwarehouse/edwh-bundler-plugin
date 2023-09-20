@@ -1,6 +1,7 @@
 # methods for converting CSS files
 from __future__ import annotations
 
+import os
 import textwrap
 import typing
 from functools import singledispatch
@@ -11,26 +12,30 @@ from .shared import _del_whitespace, extract_contents_cdn, extract_contents_loca
 import sass
 
 
-def convert_scss(contents: str, minify=True) -> str:
+def convert_scss(contents: str, minify: bool = True, path: list[str] = None) -> str:
     """
     Convert SCSS to plain CSS, optionally remove newlines and duplicate whitespace
 
     Args:
         contents (str): SCSS/SASS String
-        minify (bool):
+        minify: should the output be minified?
+        path: which directory does the file exist in? (for imports)
 
     Returns: CSS String
 
     """
+
+    path = path or ["."]
+
     try:
-        contents = sass.compile(string=contents)
+        contents = sass.compile(string=contents, include_paths=path)
     except sass.CompileError:
         # it was not scss, try sass instead:
         try:
-            sass.compile(string=contents, indented=True)
+            sass.compile(string=contents, indented=True, include_paths=path)
         except sass.CompileError:
             # try to fix broken indentation:
-            sass.compile(string=textwrap.dedent(contents), indented=True)
+            sass.compile(string=textwrap.dedent(contents), indented=True, include_paths=path)
 
     if minify:
         contents = _del_whitespace(contents)
@@ -82,7 +87,7 @@ def _(file: str, cache=True, minify=True):
     file = file.split("?")[0].strip()
 
     if file.endswith((".scss", ".sass")) or file.startswith("//"):
-        contents = convert_scss(contents, minify=minify)
+        contents = convert_scss(contents, minify=minify, path=[os.path.dirname(file)])
     elif minify:
         contents = _del_whitespace(contents)
 

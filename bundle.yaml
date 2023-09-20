@@ -10,6 +10,7 @@ css:
     .alert {
       border: 1px solid $border-dark;
     }
+  - src/static/example.sass
 
 config:
   minify: 1
