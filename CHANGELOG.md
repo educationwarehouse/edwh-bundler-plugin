@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.3 (2023-09-20)
+### Fix
+* Inline multiline scss can now also be converted ([`964d28d`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/964d28d701782913be46b4f6b41b2a045873c99d))
+
+### Documentation
+* Copied README from previous repo ([`6464165`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/64641658cca6be8b957eb49afe706487a3a28ca0))
+
 ## v0.2.2 (2023-09-19)
 ### Performance
 * **sass:** Re-introduced JIT imports to slightly speed up plugin ([`4433ae9`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/4433ae9cb3075e0ceb8b06ca7b09845b960aac89))
