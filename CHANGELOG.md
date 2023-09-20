@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.4 (2023-09-20)
+### Fix
+* **sass:** Actually support sass next to scss ([`1e5cd99`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/1e5cd9985c8a9fee45bce46c64b1fa9b0b019c57))
+
 ## v0.2.3 (2023-09-20)
 ### Fix
 * Inline multiline scss can now also be converted ([`964d28d`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/964d28d701782913be46b4f6b41b2a045873c99d))
