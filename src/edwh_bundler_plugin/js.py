@@ -43,7 +43,9 @@ def _(file: str, cache=True, minify=True) -> str:
         # raw code, should start with comment in JS to identify it
         contents = file
     else:
-        raise NotImplementedError(f"File type of {file} could not be identified.")
+        raise NotImplementedError(
+            f"File type of {file} could not be identified. If you want to add inline code, add a comment at the top of the block."
+        )
 
     file = file.split("?")[0]
 

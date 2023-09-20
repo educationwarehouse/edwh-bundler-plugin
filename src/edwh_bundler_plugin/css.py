@@ -1,18 +1,14 @@
 # methods for converting CSS files
 from __future__ import annotations
 
+import textwrap
 import typing
 from functools import singledispatch
 
 from .lazy import JIT
 from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local, truthy
 
-if typing.TYPE_CHECKING:
-    import sass
-else:
-    # sass is a slow import, so only import it when actually required by the code!
-    # (and not during `edwh` startup)
-    sass = JIT("sass")
+import sass
 
 
 def convert_scss(contents: str, minify=True) -> str:
@@ -26,7 +22,15 @@ def convert_scss(contents: str, minify=True) -> str:
     Returns: CSS String
 
     """
-    contents = sass.compile(string=contents)
+    try:
+        contents = sass.compile(string=contents)
+    except sass.CompileError:
+        # it was not scss, try sass instead:
+        try:
+            sass.compile(string=contents, indented=True)
+        except sass.CompileError:
+            # try to fix broken indentation:
+            sass.compile(string=textwrap.dedent(contents), indented=True)
 
     if minify:
         contents = _del_whitespace(contents)
@@ -71,7 +75,9 @@ def _(file: str, cache=True, minify=True):
         # raw code, should start with comment in CSS to identify it
         contents = file
     else:
-        raise NotImplementedError(f"File type of {file} could not be identified.")
+        raise NotImplementedError(
+            f"File type of {file} could not be identified. If you want to add inline code, add a comment at the top of the block."
+        )
 
     file = file.split("?")[0].strip()
 
