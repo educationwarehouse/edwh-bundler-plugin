@@ -257,7 +257,7 @@ def _handle_files(
 
     with start_buffer(output) as bufferf:
         for inf in files:
-            res = callback(inf, cache=use_cache, minify=minify)
+            res = callback(inf, settings, cache=use_cache, minify=minify)
             bufferf.write(res + "\n")
             if verbose:
                 print(f"Handled {inf}", file=sys.stderr)

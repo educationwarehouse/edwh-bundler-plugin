@@ -5,15 +5,30 @@ import contextlib
 import os
 import textwrap
 import typing
-from functools import singledispatch
-
-from .lazy import JIT
-from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local, truthy
+import warnings
 
 import sass
 
+from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local
 
-def convert_scss(contents: str, minify: bool = True, path: list[str] = None) -> str:
+SCSS_TYPES = None | bool | int | float | str | list["CSS_TYPES"] | dict[str, "CSS_TYPES"]
+
+
+@contextlib.contextmanager
+def as_warning(exception_type: typing.Type[Exception]):
+    # works similarly to contextlib.suppress but prints the error as warning instead.
+    # however, pycharm does not understand it, so you will get annoying "Code Unreachable"
+    try:
+        yield
+    except exception_type as e:
+        filename = e.__traceback__.tb_frame.f_code.co_filename
+        line_number = e.__traceback__.tb_lineno
+        warnings.warn_explicit(str(e), source=e, lineno=line_number, filename=filename, category=UserWarning)
+
+
+def convert_scss(
+    contents: str, minify: bool = True, path: list[str] = None, insert_variables: dict[str, SCSS_TYPES] = None
+) -> str:
     """
     Convert SCSS to plain CSS, optionally remove newlines and duplicate whitespace
 
@@ -21,103 +36,131 @@ def convert_scss(contents: str, minify: bool = True, path: list[str] = None) -> 
         contents (str): SCSS/SASS String
         minify: should the output be minified?
         path: which directory does the file exist in? (for imports)
+        insert_variables: Python variables to prefix the contents with
 
     Returns: CSS String
     """
 
     path = path or ["."]
+    insert_variables = insert_variables or {}
 
     output_style = 'compressed' if minify else 'nested'
 
     # first try: scss
     with contextlib.suppress(sass.CompileError):
-        return sass.compile(string=contents, include_paths=path, output_style=output_style)
+        variables = convert_to_sass_variables(**insert_variables)
+        return sass.compile(string=variables + contents, include_paths=path, output_style=output_style)
 
     # next try: sass
+    variables = convert_to_sass_variables(**insert_variables, _language="sass")
+
     with contextlib.suppress(sass.CompileError):
-        return sass.compile(string=contents, indented=True, include_paths=path, output_style=output_style)
+        return sass.compile(string=variables + contents, indented=True, include_paths=path, output_style=output_style)
 
     # last option: sass with fixed indentation:
-    return sass.compile(string=textwrap.dedent(contents), indented=True, include_paths=path, output_style=output_style)
+    with contextlib.suppress(sass.CompileError):
+        return sass.compile(
+            string=variables + textwrap.dedent(contents), indented=True, include_paths=path, output_style=output_style
+        )
+
+    raise sass.CompileError("Something went wrong with your styles. Are you sure they have valid scss/sass syntax?")
 
 
-@singledispatch
-def extract_contents_for_css(file, cache=True, minify=True) -> str:
-    """
-    'file' is one line in the 'css' part of the config yaml.
-    > singledispatch executes a different method based on the Type of the variable 'file'
-    (yes, useful typing in Python - wow.)
-
-    Args:
-        file (str | dict): file/url path or dict with key 'file' and optional 'scope' and 'scss'.
-                            If 'scope' is provided, all classes will be prefixed in that parent selector.
-        cache (bool): get CDN files from local cache
-        minify (bool): minify file (remove newlines in the case of CSS)
-
-    Returns: string of contents to write to the css bundle
-
-    """
-    raise NotImplementedError("unknown type used, please use str or dict as first arg")
-
-
-@extract_contents_for_css.register
-def _(file: str, cache=True, minify=True):
-    """
-    Version of 'extract_contents_for_css' for when file is a string (-> file/url path)
-    """
+def load_css_contents(file: str, cache: bool = True):
     if file.startswith(("http://", "https://")):
         # download
-        contents = extract_contents_cdn(file, cache)
+        return extract_contents_cdn(file, cache)
     elif file.endswith((".css", ".scss", ".sass")):
         # read
-        contents = extract_contents_local(file)
+        return extract_contents_local(file)
     elif file.startswith("//"):  # scss
         # raw code, should start with comment in CSS to identify it
-        contents = file
+        return file
     elif file.startswith("/*"):  # css
         # raw code, should start with comment in CSS to identify it
-        contents = file
+        return file
     else:
         raise NotImplementedError(
             f"File type of {file} could not be identified. If you want to add inline code, add a comment at the top of the block."
         )
 
+
+def extract_contents_for_css(file: dict | str, settings: dict, cache=True, minify=True) -> str:
+    variables = settings.get("scss_variables", {})
+    scss = False
+    scope = None
+    if isinstance(file, dict):
+        data = file
+        file = data["file"]
+        if block_variables := data.get("variables", {}):
+            variables |= block_variables
+            scss = True
+        if scope := data.get("scope"):
+            scss = True
+
+    contents = load_css_contents(file, cache)
+
     file = file.split("?")[0].strip()
 
-    if file.endswith((".scss", ".sass")) or file.startswith("//"):
-        contents = convert_scss(contents, minify=minify, path=[os.path.dirname(file)])
+    if scss or file.endswith((".scss", ".sass")) or file.startswith("//"):
+        if scope:
+            contents = "%s{%s}" % (scope, contents)
+        contents = convert_scss(contents, minify=minify, path=[os.path.dirname(file)], insert_variables=variables)
     elif minify:
         contents = _del_whitespace(contents)
 
     return contents
 
 
-@extract_contents_for_css.register
-def _(file: dict, cache=True, minify=True):
-    """
-    Version of extract_contents_for_css for when a dict is supplied in the config yaml.
+### python to scss
+def convert_scss_key(key: str, _level: int = 0) -> str:
+    prefix = "" if _level else "$"
+    return prefix + key.replace("_", "-")
 
-    e.g.
-    css:
-      - file: https://path.to.cdn/bulma.css
-        scope: #bulma-section
-      - file: https:/path.to.cdn/some_raw.scss
-        scss: 1
-    """
-    f = file["file"]
-    contents = extract_contents_for_css(f, cache=cache, minify=minify)
 
-    scss = truthy(file.get("scss")) or f.endswith(".scss") or contents.strip().startswith("//")
+def convert_scss_value(value: SCSS_TYPES, _level: int = 0) -> str:
+    _level += 1
 
-    if scope := file.get("scope"):
-        # scope the (S)css:
-        contents = "%s{%s}" % (scope, contents)
-        scss = True
-    # more options?
+    match value:
+        case str():
+            return value.removesuffix(";")  # ; is handled on another level
+        case list():
+            converted = ", ".join(convert_scss_value(_, _level=_level) for _ in value)
+            if _level > 1:
+                # nested - include parens ()
+                converted = f"({converted})"
+            return converted
+        case dict():
+            converted = ", ".join(
+                (
+                    f"{convert_scss_key(key, _level=_level)}: {convert_scss_value(value, _level=_level + 1)}"
+                    for key, value in value.items()
+                )
+            )
+            return f"({converted})"
+        case float():
+            return str(value)
+        case None:
+            return "null"
+        case True:
+            return "true"
+        case False:
+            return "false"
+        # int must come AFTER bool (otherwise True and False are matched)
+        case int():
+            return str(value)
+        case _:
+            raise NotImplementedError(f"Unsupported type {type(value)}")
 
-    if scss:
-        contents = convert_scss(contents, minify)
-    elif minify:
-        contents = _del_whitespace(contents)
 
-    return contents
+def convert_to_sass_variables(_language="scss", **variables) -> str:
+    code = ""
+
+    eol = ";\n" if _language == "scss" else "\n"
+
+    for key, value in variables.items():
+        key = convert_scss_key(key)
+        value = convert_scss_value(value)
+        code += f"{key}: {value}{eol}"
+
+    return code

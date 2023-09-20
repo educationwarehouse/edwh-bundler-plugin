@@ -8,26 +8,26 @@ from rjsmin import jsmin
 from .shared import DOUBLE_SPACE_RE, HS_COMMENT_RE, _del_whitespace, extract_contents_cdn, extract_contents_local
 
 
-@singledispatch
-def extract_contents_for_js(file, cache=True, minify=True) -> str:
-    """
-    'file' is one line in the 'js' part of the config yaml.
-    > singledispatch executes a different method based on the Type of the variable 'file'
-    (yes, useful typing in Python - wow.)
+# @singledispatch
+# def extract_contents_for_js(file, cache=True, minify=True) -> str:
+#     """
+#     'file' is one line in the 'js' part of the config yaml.
+#     > singledispatch executes a different method based on the Type of the variable 'file'
+#     (yes, useful typing in Python - wow.)
+#
+#     Args:
+#         file (str): file/url path (dict is only supported in CSS right now)
+#         cache (bool): get CDN files from local cache
+#         minify (bool): minify file (using rjsmin for js or custom logic for hyperscript)
+#
+#     Returns: string of contents to write to the js bundle
+#
+#     """
+#     raise NotImplementedError("unknown type used, please use str or dict as first arg")
 
-    Args:
-        file (str): file/url path (dict is only supported in CSS right now)
-        cache (bool): get CDN files from local cache
-        minify (bool): minify file (using rjsmin for js or custom logic for hyperscript)
 
-    Returns: string of contents to write to the js bundle
-
-    """
-    raise NotImplementedError("unknown type used, please use str or dict as first arg")
-
-
-@extract_contents_for_js.register
-def _(file: str, cache=True, minify=True) -> str:
+# @extract_contents_for_js.register
+def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True) -> str:
     """
     Download file from remote if a url is supplied, load from local otherwise.
     If unsupported extension is used, an error will be thrown
@@ -66,9 +66,10 @@ def _(file: str, cache=True, minify=True) -> str:
     return contents
 
 
-@extract_contents_for_js.register
-def _(file: dict, cache=True, minify=True) -> str:
-    raise NotImplementedError("dict for JS entries is not supported yet")
+#
+# @extract_contents_for_js.register
+# def _(file: dict, cache=True, minify=True) -> str:
+#     raise NotImplementedError("dict for JS entries is not supported yet")
 
 
 def _include_hyperscript(contents: str) -> str:
