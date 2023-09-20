@@ -1,6 +1,7 @@
 # methods for converting CSS files
 from __future__ import annotations
 
+import contextlib
 import os
 import textwrap
 import typing
@@ -22,25 +23,22 @@ def convert_scss(contents: str, minify: bool = True, path: list[str] = None) -> 
         path: which directory does the file exist in? (for imports)
 
     Returns: CSS String
-
     """
 
     path = path or ["."]
 
-    try:
-        contents = sass.compile(string=contents, include_paths=path)
-    except sass.CompileError:
-        # it was not scss, try sass instead:
-        try:
-            sass.compile(string=contents, indented=True, include_paths=path)
-        except sass.CompileError:
-            # try to fix broken indentation:
-            sass.compile(string=textwrap.dedent(contents), indented=True, include_paths=path)
+    output_style = 'compressed' if minify else 'nested'
 
-    if minify:
-        contents = _del_whitespace(contents)
+    # first try: scss
+    with contextlib.suppress(sass.CompileError):
+        return sass.compile(string=contents, include_paths=path, output_style=output_style)
 
-    return contents
+    # next try: sass
+    with contextlib.suppress(sass.CompileError):
+        return sass.compile(string=contents, indented=True, include_paths=path, output_style=output_style)
+
+    # last option: sass with fixed indentation:
+    return sass.compile(string=textwrap.dedent(contents), indented=True, include_paths=path, output_style=output_style)
 
 
 @singledispatch
