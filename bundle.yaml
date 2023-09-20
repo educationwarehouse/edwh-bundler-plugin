@@ -25,4 +25,6 @@ config:
   output_js: static/js/$filename-$version.js
   hash: 1
   scss-variables:
-    base-color: green;
+    - variables.toml
+    - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=any
+

@@ -85,14 +85,25 @@ def load_css_contents(file: str, cache: bool = True):
         )
 
 
+def load_variables(source: str | list[str] | dict[str, typing.Any] | None) -> dict[str, typing.Any]:
+    if isinstance(source, dict):
+        return source
+    elif isinstance(source, (list, str)):
+        # it's either a file/url or multiple.
+        ...
+
+    # else
+    return {}
+
+
 def extract_contents_for_css(file: dict | str, settings: dict, cache=True, minify=True) -> str:
-    variables = settings.get("scss_variables", {})
+    variables = load_variables(settings.get("scss_variables"))
     scss = False
     scope = None
     if isinstance(file, dict):
         data = file
         file = data["file"]
-        if block_variables := data.get("variables", {}):
+        if block_variables := load_variables(data.get("variables")):
             variables |= block_variables
             scss = True
         if scope := data.get("scope"):
