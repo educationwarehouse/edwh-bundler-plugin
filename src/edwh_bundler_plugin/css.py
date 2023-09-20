@@ -64,12 +64,18 @@ def _(file: str, cache=True, minify=True):
     elif file.endswith((".css", ".scss", ".sass")):
         # read
         contents = extract_contents_local(file)
+    elif file.startswith("//"):  # scss
+        # raw code, should start with comment in CSS to identify it
+        contents = file
+    elif file.startswith("/*"):  # css
+        # raw code, should start with comment in CSS to identify it
+        contents = file
     else:
         raise NotImplementedError(f"File type of {file} could not be identified.")
 
-    file = file.split("?")[0]
+    file = file.split("?")[0].strip()
 
-    if file.endswith((".scss", ".sass")):
+    if file.endswith((".scss", ".sass")) or file.startswith("//"):
         contents = convert_scss(contents, minify=minify)
     elif minify:
         contents = _del_whitespace(contents)
@@ -92,7 +98,7 @@ def _(file: dict, cache=True, minify=True):
     f = file["file"]
     contents = extract_contents_for_css(f, cache=cache, minify=minify)
 
-    scss = truthy(file.get("scss")) or f.endswith(".scss")
+    scss = truthy(file.get("scss")) or f.endswith(".scss") or contents.strip().startswith("//")
 
     if scope := file.get("scope"):
         # scope the (S)css:

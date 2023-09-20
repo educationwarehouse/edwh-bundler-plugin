@@ -55,7 +55,7 @@ def convert_data(data: dict[str, typing.Any] | list[typing.Any] | typing.Any):
 
 def _load_config_yaml(fname: str):
     with open(fname) as f:
-        data = yaml.load(f, yaml.Loader)
+        data = yaml.load(f, yaml.SafeLoader)
 
     return convert_data(data)
 
