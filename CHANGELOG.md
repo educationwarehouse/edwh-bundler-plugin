@@ -3,9 +3,6 @@
 <!--next-version-placeholder-->
 
 ## v1.0.0 (2023-09-26)
-
-
-## v0.3.0 (2023-09-26)
 ### Feature
 * Bundler can now load extra scss variables from yaml/toml/json/... ([`37e5707`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/37e57075d6c49168b759e292223abdae020145da))
 * **scss:** WIP to load variables from file or url instead of yaml only ([`3d6ef99`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/3d6ef9904aa01a6110def2faf39e4260deed3aeb))

@@ -32,6 +32,8 @@ pipx install edwh[plugins,omgeving]
 
 ## Usage
 
+After setting up a correct `bundle.yaml`, simply run `edwh bundle.build' to build your JS and CSS bundles!
+
 ### JS
 
 Since this package is Python-only, it can't do any of the more fancy stuff that nodejs-based bundlers can.
@@ -52,20 +54,32 @@ A scope can also be defined and using sass all styles in the file will be prefix
 
 ### Configuration
 
-A bundle with a specific configuration can be built with: `furl build --input some.yaml`.
-If no `--input` is defined, `furl.yaml` in the current directory will be used.
+A bundle with a specific configuration can be built with: `edwh bundle.build --input some.yaml`.
+If no `--input` is defined, `bundle.yaml` in the current directory will be used.
 This yaml can contain these keys:
 
 ```yaml
 js:
-  - ...
+  - ... # list of resources
 css:
-  - ...
+  - ... # list of resources
 config:
-  minify: bool
-  cache: bool
-  output_css: path/to/output.css
-  output_js: /path/to/bundled.js
+  minify: bool  # should the outputs be minified?
+  cache: bool   # should CDN resources be cached locally?
+  hash: bool    # should a .hash file be created in addition to the output files?
+  # - and _ are interchangable in variable names:
+  version: 1.2.3 # default: 'latest'
+  output-css: static/css/$filename-$version.css # where should the css be stored?
+  output_js: static/js/$filename-$version.js    # where should the js be stored?
+  scss-variables: # will be available for all .scss files
+    - variables.toml # from a toml, json, yaml file
+    - https://my.site/api/styles.json?secret=${AUTH_TOKEN} # or from a remote file
+
+
+  # extra variables, available via $varname (e.g. see output-css)
+  filename: bundled
+
+
 ```
 
 `js` contains input files for the JS bundle, `css` input files for the CSS bundle and `config` contains general
@@ -77,17 +91,17 @@ The JS part of the configuration has the following options:
 
 ```yaml
 js:
-  - https://some.cdn/mypackage.js
-  - ./path/to/file.js
-  - https://some.cdn/mypackage._hs
-  - /path/to/file._hs
-  - console.log("inline js")
+  - https://some.cdn/mypackage.js   # remote JS file
+  - ./path/to/file.js               # local JS file
+  - https://some.cdn/mypackage._hs  # remote hyperscript file
+  - /path/to/file._hs               # local hyperscript file
   - >
+    // inline JavaScript (requires starting with a comment so the bundler can detect it)
     console.log("inline multiline js")
-  - _hyperscript("log 'inline hyperscript'") # if you've included hyperscript from a file or cdn above! Tip: alias `_ = _hyperscript` for ease of use)
-  - https://some.cdn/mystyles.css
-  - path/to/styles.css
-  - path/to/template.html 
+  - _hyperscript("log 'inline hyperscript'") # if you've included 'hyperscript' from a file or cdn above! Tip: alias `_ = _hyperscript` for ease of use)
+  - https://some.cdn/mystyles.css  # remote CSS (will be inlined in the head)
+  - path/to/styles.css             # local CSS (will be inlined in the head)
+  - path/to/template.html          # will be added to the end of the DOM 
 ```
 
 SCSS is not supported in this section.
@@ -96,16 +110,25 @@ SCSS is not supported in this section.
 
 ```yaml
 css:
-  - https://some.cdn/mystyles.scss
-  - https://some.cdn/mystyles.css
-  - path/to/styles.scss
-  - path/to/styles.css
-  - file: url_or_path.css
-    scope: '#my-style-scope'
-  - file: url_or_path.css
+  - https://some.cdn/mystyles.scss # remote SCSS
+  - https://some.cdn/mystyles.css  # remote CSS
+  - path/to/styles.scss            # local SCSS
+  - path/to/styles.css             # local CSS
+  - file: url_or_path.css          # dict with options: 
+    scope: '#my-style-scope'       # every rule in this file will be scoped
+  - file: url_or_path.css          # transform a .css file with sass
     scss: 1
   - |
     // inline scss or css
+  - file: url_or_path.scss
+    variables:              # extra SCSS variables
+      primary: "#000033"
+      secondary: "green"
+      width: "20px"
+  - file: url_or_path.scss
+    variables: # one or more files with variables:
+      - variables.toml                                       # local configuration file (toml, yaml, json, ...)
+      - https://my.site/api/settings.json?secret=${APIKEY}   # remote config file with .env setting for auth 
 ```
 
 SCSS will be applied if the file extension is `sass` or `scss` or if the scss option is true.
