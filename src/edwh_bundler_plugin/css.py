@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 import textwrap
 import typing
 import warnings
 
 import sass
+from configuraptor import load_data
+from dotenv import load_dotenv
 
 from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local
 
@@ -85,15 +88,26 @@ def load_css_contents(file: str, cache: bool = True):
         )
 
 
-def load_variables(source: str | list[str] | dict[str, typing.Any] | None) -> dict[str, typing.Any]:
-    if isinstance(source, dict):
-        return source
-    elif isinstance(source, (list, str)):
-        # it's either a file/url or multiple.
-        ...
+DOTENV_RE = re.compile(r'\${(.*?)}')
 
-    # else
-    return {}
+
+def replace_placeholders(raw_string: str) -> str:
+    def replace(match):
+        key = match.group(1)
+        return os.getenv(key, f'${{{key}}}')
+
+    return DOTENV_RE.sub(replace, raw_string)
+
+
+def load_variables(source: str | list[str] | dict[str, typing.Any] | None) -> dict[str, typing.Any]:
+    load_dotenv()
+
+    if isinstance(source, str):
+        source = replace_placeholders(source)
+    elif isinstance(source, list):
+        source = [replace_placeholders(_) for _ in source]
+
+    return load_data(source)
 
 
 def extract_contents_for_css(file: dict | str, settings: dict, cache=True, minify=True) -> str:

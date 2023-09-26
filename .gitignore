@@ -4,3 +4,4 @@ venv/
 dist/
 .cdn_cache/
 static/
+.env

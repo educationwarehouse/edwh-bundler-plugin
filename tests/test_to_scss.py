@@ -1,7 +1,8 @@
+import textwrap
+
 import sass
 
 from src.edwh_bundler_plugin.css import convert_to_sass_variables
-import textwrap
 
 
 def test_converter():
@@ -27,8 +28,7 @@ def test_converter():
             "primary-color": 'rgba(255, 0, 0, 0.5)',
             'secondary-color': 'hsl(121, 100%, 50%)',
         },
-
-        _language="sass"
+        _language="sass",
     )
 
     scss_code += """
@@ -53,7 +53,8 @@ def test_converter():
             }
         """
 
-    sass_code += textwrap.dedent("""
+    sass_code += textwrap.dedent(
+        """
             h1
               font-family: $font
               color: $color
@@ -68,7 +69,8 @@ def test_converter():
                 &.#{$key}-container
                   .#{$key}
                     background-color: $value
-        """)
+        """
+    )
 
     css = sass.compile(string=scss_code, output_style="expanded")
 
