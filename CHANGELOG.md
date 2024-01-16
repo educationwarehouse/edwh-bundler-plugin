@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.1 (2024-01-16)
+### Fix
+* Better .toml loading + verbose logging ([`b01c6d7`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/b01c6d7733962a733d1217e5b0841a0d4b5ee87b))
+
+### Documentation
+* **config:** Explained more about the bundle.yaml file ([`f945ca4`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/f945ca478b8c1ebf22e656e398742835aab3ea10))
+
 ## v1.0.0 (2023-09-26)
 ### Feature
 * Bundler can now load extra scss variables from yaml/toml/json/... ([`37e5707`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/37e57075d6c49168b759e292223abdae020145da))
