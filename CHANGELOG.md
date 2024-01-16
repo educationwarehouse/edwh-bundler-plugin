@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.2 (2024-01-16)
+### Fix
+* Database-based build now works via pathlib + auto creates tmp folders (incl. parents) ([`2eb06fa`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/2eb06fa4b74ca1cb67b816f33f6cbcc025877bcf))
+
 ## v1.0.1 (2024-01-16)
 ### Fix
 * Better .toml loading + verbose logging ([`b01c6d7`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/b01c6d7733962a733d1217e5b0841a0d4b5ee87b))
