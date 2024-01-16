@@ -34,9 +34,12 @@ DEFAULT_INPUT = "bundle.yaml"
 DEFAULT_INPUT_LTS = "bundle-lts.yaml"
 DEFAULT_OUTPUT_JS = "bundle.js"
 DEFAULT_OUTPUT_CSS = "bundle.css"
-TEMP_OUTPUT_DIR = "/tmp/bundle-build/"
+
+TMP = Path("/tmp")
+
+TEMP_OUTPUT_DIR = TMP / "bundle-build"
 TEMP_OUTPUT = ".bundle_tmp"
-DEFAULT_ASSETS_DB = "/tmp/lts_assets.db"
+DEFAULT_ASSETS_DB = TMP / "lts_assets.db"
 DEFAULT_ASSETS_SQL = "py4web/apps/lts/databases/lts_assets.sql"
 
 
@@ -252,8 +255,10 @@ def _handle_files(
         output_filename = output.split("/")[-1]
         ts = datetime.now()
         ts = str(ts).replace(" ", "_")
-        os.mkdir(f"{TEMP_OUTPUT_DIR}/{ts}")
-        output = f"{TEMP_OUTPUT_DIR}/{ts}/{output_filename}"
+
+        output_dir = TEMP_OUTPUT_DIR / ts
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output = output_dir / output_filename
 
     with start_buffer(output) as bufferf:
         for inf in files:
@@ -697,8 +702,7 @@ def publish(
     db = setup_db(c)
     previous = get_latest_version(db, "js")
 
-    if not os.path.exists(TEMP_OUTPUT_DIR):
-        os.mkdir(TEMP_OUTPUT_DIR)
+    TEMP_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     major, minor, patch, version = _decide_new_version(major, minor, patch, previous, version)
 
@@ -769,7 +773,7 @@ def publish(
     rmtree(TEMP_OUTPUT_DIR)
 
     # after publish: run `up -s py4web` so the bjoerns are all updated
-    c.run("inv up -s py4web")
+    c.run("edwh up -s py4web")
 
 
 def _should_publish(
