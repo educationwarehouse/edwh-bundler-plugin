@@ -38,6 +38,7 @@ dev = [
     "hatch",
     # "python-semantic-release",
     "black",
+    "pytest",
 ]
 
 [project.urls]

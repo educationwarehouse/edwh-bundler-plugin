@@ -26,5 +26,5 @@ config:
   hash: 1
   scss-variables:
     - variables.toml
-    - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=${AUTH_TOKEN}
+    # - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=${AUTH_TOKEN}
 

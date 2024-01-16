@@ -257,7 +257,7 @@ def _handle_files(
 
     with start_buffer(output) as bufferf:
         for inf in files:
-            res = callback(inf, settings, cache=use_cache, minify=minify)
+            res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
             bufferf.write(res + "\n")
             if verbose:
                 print(f"Handled {inf}", file=sys.stderr)
@@ -269,8 +269,11 @@ def _handle_files(
 
     if store_hash:
         hash_file = store_file_hash(output)
+
+        print((output, hash_file))
         return output, hash_file
 
+    print(output)
     return output
 
 
@@ -509,7 +512,6 @@ def build(
     except NotFound as e:
         warnings.warn(str(e), source=e)
 
-    print(result)
     return result
 
 

@@ -26,7 +26,7 @@ from .shared import DOUBLE_SPACE_RE, HS_COMMENT_RE, _del_whitespace, extract_con
 
 
 # @extract_contents_for_js.register
-def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True) -> str:
+def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, verbose=False) -> str:
     """
     Download file from remote if a url is supplied, load from local otherwise.
     If unsupported extension is used, an error will be thrown
