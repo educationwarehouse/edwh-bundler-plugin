@@ -7,26 +7,26 @@ from src.edwh_bundler_plugin.css import convert_to_sass_variables
 
 def test_converter():
     scss_code = convert_to_sass_variables(
-        font=['Arial', 'sans-serif'],
+        font=["Arial", "sans-serif"],
         color="#8504bd",
         font_size=16,
         nothing=None,
         maybe=False,
         mapping={
-            "primary-color": 'rgba(255, 0, 0, 0.5)',
-            'secondary-color': 'hsl(121, 100%, 50%)',
+            "primary-color": "rgba(255, 0, 0, 0.5)",
+            "secondary-color": "hsl(121, 100%, 50%)",
         },
     )
 
     sass_code = convert_to_sass_variables(
-        font=['Arial', 'sans-serif'],
+        font=["Arial", "sans-serif"],
         color="#8504bd",
         font_size=16,
         nothing=None,
         maybe=False,
         mapping={
-            "primary-color": 'rgba(255, 0, 0, 0.5)',
-            'secondary-color': 'hsl(121, 100%, 50%)',
+            "primary-color": "rgba(255, 0, 0, 0.5)",
+            "secondary-color": "hsl(121, 100%, 50%)",
         },
         _language="sass",
     )

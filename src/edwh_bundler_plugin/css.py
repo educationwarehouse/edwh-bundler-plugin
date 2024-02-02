@@ -62,7 +62,7 @@ def convert_scss(
     path = path or ["."]
     insert_variables = insert_variables or {}
 
-    output_style = 'compressed' if minify else 'nested'
+    output_style = "compressed" if minify else "nested"
 
     # first try: scss
     variables = convert_to_sass_variables(**insert_variables)
@@ -109,13 +109,13 @@ def load_css_contents(file: str, cache: bool = True):
         )
 
 
-DOTENV_RE = re.compile(r'\${(.*?)}')
+DOTENV_RE = re.compile(r"\${(.*?)}")
 
 
 def replace_placeholders(raw_string: str) -> str:
     def replace(match):
         key = match.group(1)
-        return os.getenv(key, f'${{{key}}}')
+        return os.getenv(key, f"${{{key}}}")
 
     return DOTENV_RE.sub(replace, raw_string)
 

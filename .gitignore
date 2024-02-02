@@ -5,3 +5,4 @@ dist/
 .cdn_cache/
 static/
 .env
+*.bak
