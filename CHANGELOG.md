@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.3 (2024-02-02)
+### Fix
+* **pyproject:** Pyproject.toml can now be used via -c option (instead of as fallback only) ([`cfc0cf0`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/cfc0cf046409c63e74ae9394ccd5d8fc7f2c2f45))
+
 ## v1.0.2 (2024-01-16)
 ### Fix
 * Database-based build now works via pathlib + auto creates tmp folders (incl. parents) ([`2eb06fa`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/2eb06fa4b74ca1cb67b816f33f6cbcc025877bcf))
