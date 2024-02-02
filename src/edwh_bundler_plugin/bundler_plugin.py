@@ -77,6 +77,12 @@ def _load_config_toml(fname: str, key: str = ""):
     return convert_data(data)
 
 
+def _load_config_pyproject():
+    data = _load_config_toml("pyproject.toml", key="tool.edwh.bundler")
+    data = data or _load_config_toml("pyproject.toml", key="tool.edwh.bundle")
+    return "pyproject.toml", data
+
+
 def _load_config(fname: str = DEFAULT_INPUT, strict=False) -> tuple[str, dict]:
     """
     Load yaml config from file name, default to empty or error if strict
@@ -86,13 +92,16 @@ def _load_config(fname: str = DEFAULT_INPUT, strict=False) -> tuple[str, dict]:
         return fname, _load_config_yaml(fname)
     elif os.path.exists(fname) and fname.endswith(".toml"):
         # load user defined toml
-        return fname, _load_config_toml(fname)
+        if fname == "pyproject.toml":
+            return _load_config_pyproject()
+        else:
+            return fname, _load_config_toml(fname)
     elif fname == DEFAULT_INPUT and (altname := DEFAULT_INPUT.replace(".yaml", ".toml")) and os.path.exists(altname):
         # try bundle.toml
         return altname, _load_config_toml(altname)
-    elif (altname := "pyproject.toml") and os.path.exists(altname):
+    elif os.path.exists("pyproject.toml"):
         # look in pyproject
-        return altname, _load_config_toml(altname, key="tool.edwh.bundle")
+        return _load_config_pyproject()
     elif strict:
         # err !
         raise FileNotFoundError(fname)
@@ -101,11 +110,14 @@ def _load_config(fname: str = DEFAULT_INPUT, strict=False) -> tuple[str, dict]:
         return "", {}
 
 
-def load_config(fname: str = DEFAULT_INPUT, strict=True) -> dict:
+def load_config(fname: str = DEFAULT_INPUT, strict=True, verbose=False) -> dict:
     file_used, data = _load_config(fname, strict=strict)
+
     if not data and strict:
         # empty config!
         raise ValueError(f"Config data found for `{file_used}` was empty!")
+    elif verbose:
+        print(f"Using config: {file_used}", file=sys.stderr)
 
     return data or {}
 
@@ -494,8 +506,7 @@ def build(
     Build the JS and CSS bundle
     """
     # invoke build
-
-    settings = load_config(config).get("config", {})
+    settings = load_config(config, verbose=True).get("config", {})
 
     minify = cli_or_config(minify, settings, "minify")
     use_cache = cli_or_config(use_cache, settings, "cache", default=True)
