@@ -138,57 +138,34 @@ skip-string-normalization = false
 [tool.ruff]
 target-version = "py310"
 line-length = 120
+
+[tool.ruff.lint]
 select = [
-    "A",
-    "ARG",
-    "B",
-    "C",
-    "DTZ",
-    "E",
-    "EM",
-    "F",
-    "FBT",
-    "I",
-    "ICN",
-    "ISC",
-    "N",
-    "PLC",
-    "PLE",
-    "PLR",
-    "PLW",
-    "Q",
-    "RUF",
-    "S",
-    "T",
-    "TID",
-    "UP",
-    "W",
-    "YTT",
-]
-ignore = [
-    # Allow non-abstract empty methods in abstract base classes
-    "B027",
-    # Allow boolean positional values in function calls, like `dict.get(... True)`
-    "FBT003",
-    # Ignore checks for possible passwords
-    "S105", "S106", "S107",
-    # Ignore complexity
-    "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+    "F", # pyflake error
+    "E", # pycodestyle error
+    "W", # pycodestyle warning
+    "Q", # quotes
+    "A", # builtins
+    # "C4", # comprehensions - NO: doesn't allow dict()
+    # "RET", # return - NO: annoying
+    "SIM", # simplify
+    "ARG", # unused arguments
+    # "COM", # comma's - NO: annoying
+    # "PTH", # use pathlib - NO: annoying
+    "RUF", # ruff rules
 ]
 unfixable = [
     # Don't touch unused imports
     "F401",
 ]
 
-[tool.ruff.isort]
-known-first-party = ["edwh_bundler_plugin"]
+ignore = [
+    "RUF013" # implicit Optional
+]
 
-[tool.ruff.flake8-tidy-imports]
-ban-relative-imports = "all"
-
-[tool.ruff.per-file-ignores]
-# Tests can use magic values, assertions, and relative imports
-"tests/**/*" = ["PLR2004", "S101", "TID252"]
+[tool.isort]
+profile = "black"
+extend_skip_glob = ["*.bak/*"]
 
 [tool.coverage.run]
 source_pkgs = ["edwh_bundler_plugin", "tests"]

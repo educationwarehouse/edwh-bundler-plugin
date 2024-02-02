@@ -105,7 +105,8 @@ def load_css_contents(file: str, cache: bool = True):
         return file
     else:
         raise NotImplementedError(
-            f"File type of {file} could not be identified. If you want to add inline code, add a comment at the top of the block."
+            f"File type of {file} could not be identified. "
+            f"If you want to add inline code, add a comment at the top of the block."
         )
 
 

@@ -82,7 +82,7 @@ def truthy(val) -> bool:
     Returns:
 
     """
-    raise TypeError(f"{str(type(val))} could not be evaluated (only str or bool)")
+    raise TypeError(f"{type(val)} could not be evaluated (only str or bool)")
 
 
 @truthy.register

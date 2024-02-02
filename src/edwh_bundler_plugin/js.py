@@ -5,7 +5,13 @@ from functools import singledispatch
 
 from rjsmin import jsmin
 
-from .shared import DOUBLE_SPACE_RE, HS_COMMENT_RE, _del_whitespace, extract_contents_cdn, extract_contents_local
+from .shared import (
+    DOUBLE_SPACE_RE,
+    HS_COMMENT_RE,
+    _del_whitespace,
+    extract_contents_cdn,
+    extract_contents_local,
+)
 
 # @singledispatch
 # def extract_contents_for_js(file, cache=True, minify=True) -> str:
