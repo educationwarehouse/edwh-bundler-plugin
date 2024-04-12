@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.4 (2024-04-12)
+
+### Fix
+
+* Require_sudo before chmod ([`c50193a`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/c50193a8b5112e514a46b72d98cdaccedb1ad881))
+
 ## v1.0.3 (2024-02-02)
 ### Fix
 * **pyproject:** Pyproject.toml can now be used via -c option (instead of as fallback only) ([`cfc0cf0`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/cfc0cf046409c63e74ae9394ccd5d8fc7f2c2f45))
