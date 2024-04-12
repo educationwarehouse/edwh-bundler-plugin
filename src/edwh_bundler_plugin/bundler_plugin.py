@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from shutil import rmtree
 
+import edwh
 import invoke
 import tomlkit
 import yaml
@@ -550,6 +551,8 @@ def dict_factory(cursor: sqlite3.Cursor, row: sqlite3.Row):
 
 
 def assert_chmod_777(c: Context, filepath: str | list[str]):
+    edwh.tasks.require_sudo(c)  # can't chmod without sudo
+
     filepaths: list[str] = [filepath] if isinstance(filepath, str) else filepath
 
     for fp in filepaths:

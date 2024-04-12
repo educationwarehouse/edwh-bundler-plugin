@@ -24,7 +24,8 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-    'invoke',
+    'edwh',
+    'tomlkit',
     'python-dotenv',
     'libsass',
     'rjsmin',
