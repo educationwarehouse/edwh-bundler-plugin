@@ -194,11 +194,11 @@ def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> st
         # recursive fill nested values:
         return {k: _fill_variables(v, variables) for k, v in setting.items()}
 
-    if "$" not in setting:
+    if "$" not in str(setting):
         return setting
 
     for reg, repl in variables.items():
-        setting = reg.sub(str(repl), setting)
+        setting = reg.sub(str(repl), str(setting))
 
     return setting
 
