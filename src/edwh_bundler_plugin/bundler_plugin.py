@@ -695,7 +695,7 @@ def _decide_new_version(major: int, minor: int, patch: int, previous: dict, vers
     return major, minor, patch, version
 
 
-def calculate_file_hash(c: Context, filename: str):
+def calculate_file_hash(c: Context, filename: str | Path):
     return c.run(f"sha1sum {filename}", hide=True).stdout.split(" ")[0]
 
 
@@ -791,8 +791,10 @@ def publish(
 
 
 def _should_publish(
-    c: Context, force: bool, output_path: str, previous_hash: str, filetype: typing.Literal["JS", "CSS"]
+    c: Context, force: bool, output_filename: str | Path, previous_hash: str, filetype: typing.Literal["JS", "CSS"]
 ):
+    output_path = Path(output_filename)
+
     file_hash = calculate_file_hash(c, output_path)
     if file_hash == previous_hash:
         print(f"{filetype} hash matches previous version.")
@@ -803,13 +805,9 @@ def _should_publish(
         return False, None, None, None
 
     # if go:
+    file_contents = output_path.read_text(encoding="UTF-8")
 
-    with open(output_path, "r", encoding="UTF-8") as f:
-        file_contents = f.read()
-
-    filename = output_path.split("/")[-1]
-
-    return True, file_hash, filename, file_contents
+    return True, file_hash, output_path.name, file_contents
 
 
 @task(name="list")
