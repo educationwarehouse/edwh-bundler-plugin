@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.5 (2024-04-22)
+
+### Fix
+
+* Don't crash if 'setting' is not a str (e.g. Path) ([`9d817fe`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/9d817fe1ea04affd9e8d178fda5b50631a1b2a2c))
+
 ## v1.0.4 (2024-04-12)
 
 ### Fix
