@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.6 (2024-04-22)
+
+### Fix
+
+* Also work with Path for should_publish ([`f58efe5`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/f58efe5dbf9057e68256af8e3621cd974d93e19b))
+
 ## v1.0.5 (2024-04-22)
 
 ### Fix
