@@ -787,7 +787,8 @@ def publish(
     rmtree(TEMP_OUTPUT_DIR)
 
     # after publish: run `up -s py4web` so the bjoerns are all updated
-    c.run("edwh up -s py4web")
+    if confirm("Would you like to restart py4web?"):
+        c.run("edwh up -s py4web")
 
 
 def _should_publish(

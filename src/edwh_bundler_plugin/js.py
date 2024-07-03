@@ -1,8 +1,10 @@
-# methods for converting JS and hyperscript files
+# methods for converting JS/TS and hyperscript files
 from __future__ import annotations
 
-from functools import singledispatch
+from pathlib import Path
+from typing import Optional
 
+import dukpy
 from rjsmin import jsmin
 
 from .shared import (
@@ -13,25 +15,57 @@ from .shared import (
     extract_contents_local,
 )
 
-# @singledispatch
-# def extract_contents_for_js(file, cache=True, minify=True) -> str:
-#     """
-#     'file' is one line in the 'js' part of the config yaml.
-#     > singledispatch executes a different method based on the Type of the variable 'file'
-#     (yes, useful typing in Python - wow.)
-#
-#     Args:
-#         file (str): file/url path (dict is only supported in CSS right now)
-#         cache (bool): get CDN files from local cache
-#         minify (bool): minify file (using rjsmin for js or custom logic for hyperscript)
-#
-#     Returns: string of contents to write to the js bundle
-#
-#     """
-#     raise NotImplementedError("unknown type used, please use str or dict as first arg")
+
+def find_dependencies(ts_compiled: str) -> list[str]:
+    system_code = """
+    const System = {
+        register(deps, _) {
+            return deps
+        }
+    };
+    """
+    return dukpy.evaljs(f"{system_code};{ts_compiled}")
 
 
-# @extract_contents_for_js.register
+def extract_contents_typescript(_path: str | Path, settings: dict, name: Optional[str] = None) -> str:
+    path = Path(_path)
+    typescript_code = extract_contents_local(path)
+
+    # todo: parse dependencies from System.register(<here>, function(exports_1) { ... }
+    js_code = dukpy.typescript_compile(typescript_code)
+    js_code = f"__namespace__ = '{(name or '__main__')}'\n" + js_code
+
+    for dep in find_dependencies(js_code):
+        key = f"__typescript_dependency_{dep}__"
+        if key in settings:
+            # already included
+            continue
+
+        settings[key] = True
+        dep_path = path.parent.joinpath(dep).with_suffix(".ts")
+
+        dep_code = extract_contents_typescript(dep_path, settings, name=dep)
+
+        js_code = dep_code + "\n" + js_code
+
+    return js_code
+
+
+LOADER_KEY = "__loader_code_included_once__"
+
+
+def include_typescript_system_loader(settings: dict):
+    if LOADER_KEY in settings:
+        return ""
+
+    pth = Path(__file__).parent / "js/ts_loader.js"
+    loader_code = extract_contents_local(pth)
+
+    settings[LOADER_KEY] = 1
+
+    return loader_code
+
+
 def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, verbose=False) -> str:
     """
     Download file from remote if a url is supplied, load from local otherwise.
@@ -44,6 +78,8 @@ def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, 
     elif file.endswith((".js", "._hs", ".html", ".htm")):
         # read
         contents = extract_contents_local(file)
+    elif file.endswith(".ts"):
+        contents = include_typescript_system_loader(settings) + extract_contents_typescript(file, settings)
     elif file.startswith(("_(", "//", "/*", "_hyperscript(")):
         # raw code, should start with comment in JS to identify it
         contents = file

@@ -63,7 +63,7 @@ def extract_contents_cdn(url: str, cache=True) -> str:
     return _resp
 
 
-def extract_contents_local(path: str) -> str:
+def extract_contents_local(path: str | Path) -> str:
     """
     Read a file from disk
     """
