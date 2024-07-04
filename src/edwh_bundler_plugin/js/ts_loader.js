@@ -1,16 +1,17 @@
 let __namespace__;
 
-const __dependencies__ = {}
 
 const System = {
-    register(lst, callback) {
+    __dependencies__: {},
+
+    register(namespace, lst, callback) {
         // lst is used to store dependencies/imports, result.setters should be used to include these externals
         let vars;
 
-        if (__namespace__ === '__main__') {
+        if (namespace === '__main__') {
             vars = window
         } else {
-            vars = __dependencies__[__namespace__] = {}
+            vars = this.__dependencies__[namespace] = {}
         }
 
         let exports = {}
@@ -19,7 +20,7 @@ const System = {
         })
 
         for (const [idx, name] of lst.entries()) {
-            const dep = __dependencies__[name];
+            const dep = this.__dependencies__[name];
             result.setters[idx](dep);
         }
 

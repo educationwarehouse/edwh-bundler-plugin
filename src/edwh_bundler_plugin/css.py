@@ -16,7 +16,7 @@ from termcolor import cprint
 
 from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local
 
-SCSS_TYPES = None | bool | int | float | str | list["CSS_TYPES"] | dict[str, "CSS_TYPES"]
+SCSS_TYPES = None | bool | int | float | str | list["SCSS_TYPES"] | dict[str, "SCSS_TYPES"]
 
 
 @contextlib.contextmanager
@@ -97,10 +97,7 @@ def load_css_contents(file: str, cache: bool = True):
     elif file.endswith((".css", ".scss", ".sass")):
         # read
         return extract_contents_local(file)
-    elif file.startswith("//"):  # scss
-        # raw code, should start with comment in CSS to identify it
-        return file
-    elif file.startswith("/*"):  # css
+    elif file.startswith("//") or file.startswith("/*"):  # scss and css
         # raw code, should start with comment in CSS to identify it
         return file
     else:

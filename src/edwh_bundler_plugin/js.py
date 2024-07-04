@@ -33,9 +33,14 @@ def extract_contents_typescript(_path: str | Path, settings: dict, name: Optiona
 
     # todo: parse dependencies from System.register(<here>, function(exports_1) { ... }
     js_code = dukpy.typescript_compile(typescript_code)
-    js_code = f"__namespace__ = '{(name or '__main__')}'\n" + js_code
 
-    for dep in find_dependencies(js_code):
+    dependencies = find_dependencies(js_code)
+    # System.register([deps] ...
+    # -> System.register(namespace, [deps] ...
+    namespace = name or "__main__"
+    js_code = js_code.replace("System.register(", f"System.register('{namespace}', ", 1)
+
+    for dep in dependencies:
         key = f"__typescript_dependency_{dep}__"
         if key in settings:
             # already included
@@ -80,6 +85,9 @@ def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, 
         contents = extract_contents_local(file)
     elif file.endswith(".ts"):
         contents = include_typescript_system_loader(settings) + extract_contents_typescript(file, settings)
+        if minify:
+            contents = jsmin(contents)
+
     elif file.startswith(("_(", "//", "/*", "_hyperscript(")):
         # raw code, should start with comment in JS to identify it
         contents = file
