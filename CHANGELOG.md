@@ -2,6 +2,20 @@
 
 <!--next-version-placeholder-->
 
+## v1.1.0 (2024-07-04)
+
+### Feature
+
+* Started on TypeScript support via dukpy (+ custom loader for browser and buildtime import resolver) ([`a8ab5cd`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/a8ab5cda1030c16ac3e2faa67c5485e5a873dd80))
+
+### Fix
+
+* Minor tweaks in TS loading: ([`9366383`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/93663835cfd6fab2f17db4d66c3018c589288d3e))
+
+### Documentation
+
+* Added docstrings to new TS parts and updated README ([`ce0d8b2`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/ce0d8b24175b6607442cd2b79f2a10a75b270eb0))
+
 ## v1.0.6 (2024-04-22)
 
 ### Fix
