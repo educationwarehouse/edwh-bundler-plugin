@@ -17,6 +17,9 @@ from .shared import (
 
 
 def find_dependencies(ts_compiled: str) -> list[str]:
+    """
+    Use dukpy to parse a System.register call in order to extract paths of TS dependencies (e.g. `./shared`).
+    """
     system_code = """
     const System = {
         register(deps, _) {
@@ -28,10 +31,12 @@ def find_dependencies(ts_compiled: str) -> list[str]:
 
 
 def extract_contents_typescript(_path: str | Path, settings: dict, name: Optional[str] = None) -> str:
+    """
+    Convert typescript to JS (via dukpy) and prepend dependencies.
+    """
     path = Path(_path)
     typescript_code = extract_contents_local(path)
 
-    # todo: parse dependencies from System.register(<here>, function(exports_1) { ... }
     js_code = dukpy.typescript_compile(typescript_code)
 
     dependencies = find_dependencies(js_code)
@@ -53,13 +58,17 @@ def extract_contents_typescript(_path: str | Path, settings: dict, name: Optiona
 
         js_code = dep_code + "\n" + js_code
 
-    return js_code
+    return include_typescript_system_loader(settings) + js_code
 
 
 LOADER_KEY = "__loader_code_included_once__"
 
 
 def include_typescript_system_loader(settings: dict):
+    """
+    Instead of depending on SystemJS like dukpy does,
+    ts_loader.js contains a custom loader that tracks and injects dependencies at build time.
+    """
     if LOADER_KEY in settings:
         return ""
 
@@ -84,7 +93,7 @@ def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, 
         # read
         contents = extract_contents_local(file)
     elif file.endswith(".ts"):
-        contents = include_typescript_system_loader(settings) + extract_contents_typescript(file, settings)
+        contents = extract_contents_typescript(file, settings)
         if minify:
             contents = jsmin(contents)
 
@@ -113,12 +122,6 @@ def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, 
         contents = _append_to_head(contents)
 
     return contents
-
-
-#
-# @extract_contents_for_js.register
-# def _(file: dict, cache=True, minify=True) -> str:
-#     raise NotImplementedError("dict for JS entries is not supported yet")
 
 
 def _include_hyperscript(contents: str) -> str:
