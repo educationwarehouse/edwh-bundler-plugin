@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.2.1 (2024-09-30)
+
+### Fix
+
+* Make `bundle.publish` work with multiple configurations ([`3376235`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/337623560cfa0620be60aa29e594327f7c00efb8))
+
 ## v1.2.0 (2024-09-30)
 
 ### Feature
