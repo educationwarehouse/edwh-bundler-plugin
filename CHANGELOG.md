@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.2.0 (2024-09-30)
+
+### Feature
+
+* Allow specifying multiple `configurations`, include 'source' if output is not minified ([`ae2abf6`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/ae2abf6657633f3d54f2d5d5fb21362137ca3b6f))
+
 ## v1.1.0 (2024-07-04)
 
 ### Feature
