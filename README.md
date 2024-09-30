@@ -7,7 +7,7 @@
 
 EDWH Python-only bundler for static assets (JS and CSS).
 Try it out with an example:
-`edwh bundle.build --input example.yaml -v`
+`edwh bundle.build --input example.yaml --verbose`
 
 **Table of Contents**
 
@@ -139,7 +139,47 @@ SCSS will be disabled for files with that extension if the config option is set 
 The `scope` selector can be any CSS selector (e.g. `#id`, `.class`, `element` etc.)
 The `scope` and `scss` options do not work together, as `scope` always uses scss to add the parent selector.
 
-### Config
+### Multiple Configurations
+
+You can define multiple configurations within a single config file to handle different output needs, such as
+minified and unminified versions. Shared assets like JavaScript and CSS files can be defined once and reused across
+different configurations.
+**Example:**
+
+```yaml
+# bundle-multiple.yaml
+shared:
+  js: &shared_js
+    - $input_css/example.ts
+    - $input_css/main2.ts
+  css: &shared_css
+    - $input_css/example.sass
+
+configurations:
+  minified:
+    js: *shared_js
+    css: *shared_css
+    config:
+      minify: 1
+      output_js: static/js/bundled.min.js
+      output_css: static/css/bundled.min.css
+
+  unminified:
+    js: *shared_js
+    css: *shared_css
+    config:
+      minify: 0
+      output_js: static/js/bundled.js
+      output_css: static/css/bundled.css
+```
+
+To compile only one of the configurations in a file, you can use `--name`:
+```bash
+edwh bundle.build --config bundle-multiple.yaml --name minified
+```
+
+
+### CLI Config
 
 The config options from the config file can be overridden on the command line with the corresponding flags (
 see `edwh bundle.build -h`).

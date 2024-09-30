@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import io
 import os
 import re
@@ -14,6 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from shutil import rmtree
+from typing import Optional
 
 import edwh
 import invoke
@@ -26,7 +28,18 @@ from .css import extract_contents_for_css
 from .js import extract_contents_for_js
 from .shared import truthy
 
-now = datetime.utcnow
+
+def now():
+    """
+    Backwards and forwards compatible way to get the current datetime in UTC.
+    """
+    try:
+        # 3.12
+        return datetime.now(dt.UTC)
+    except AttributeError:
+        # 3.10
+        return datetime.utcnow()
+
 
 # prgram is created in __init__
 
@@ -111,7 +124,10 @@ def _load_config(fname: str = DEFAULT_INPUT, strict=False) -> tuple[str, dict]:
         return "", {}
 
 
-def load_config(fname: str = DEFAULT_INPUT, strict=True, verbose=False) -> dict:
+def load_config(fname: str = DEFAULT_INPUT, strict=True, verbose=False) -> dict[str, dict]:
+    """
+    Returns a dict of {name: config dict} where 'name' will be _ if bundle.yaml contains only one config.
+    """
     file_used, data = _load_config(fname, strict=strict)
 
     if not data and strict:
@@ -120,7 +136,10 @@ def load_config(fname: str = DEFAULT_INPUT, strict=True, verbose=False) -> dict:
     elif verbose:
         print(f"Using config: {file_used}", file=sys.stderr)
 
-    return data or {}
+    if data.get("configurations"):
+        return data["configurations"]
+    else:
+        return {"_": data} if data else {}
 
 
 @contextmanager
@@ -220,9 +239,17 @@ def store_file_hash(input_filename: str, output_filename: str = None):
     return output_filename
 
 
+class FileHandler(typing.Protocol):
+    # bijv. extract_contents_for_js, extract_contents_for_css
+    def __call__(
+        self, file: dict | str, settings: dict, cache: bool = True, minify: bool = True, verbose: bool = False
+    ) -> str:
+        ...
+
+
 def _handle_files(
     files: list,
-    callback: typing.Callable,
+    callback: FileHandler,
     output: str | typing.IO,
     verbose: bool,
     use_cache: bool,
@@ -275,7 +302,11 @@ def _handle_files(
 
     with start_buffer(output) as bufferf:
         for inf in files:
+            if not minify:
+                bufferf.write(f"/* SOURCE: {inf} */\n")
+
             res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
+
             bufferf.write(res + "\n")
             if verbose:
                 print(f"Handled {inf}", file=sys.stderr)
@@ -308,37 +339,43 @@ def build_js(
     save_hash: bool = None,
     version: str = None,
     stdout: bool = False,  # overrides output
+    name: Optional[str] = None,
 ):
     """
     Build the JS bundle (cli only)
     """
-    config = load_config(config)
+    configs = load_config(config)
 
-    files = files or config.get("js")
+    results = {}
+    for config_name, config in configs.items():
+        if name and config_name != name:
+            continue
+        if verbose:
+            print(f"Starting on JS for `{config_name}`")
 
-    if not files:
-        raise NotFound("js")
+        files = files or config.get("js")
 
-    settings = config.get("config", {})
+        if not files:
+            raise NotFound("js")
 
-    minify = cli_or_config(minify, settings, "minify")
-    use_cache = cli_or_config(use_cache, settings, "cache", default=True)
-    save_hash = cli_or_config(save_hash, settings, "hash")
+        settings = config.get("config", {})
 
-    output = sys.stdout if stdout else cli_or_config(output, settings, "output_js", is_bool=False) or DEFAULT_OUTPUT_JS
+        settings["version"] = cli_or_config(version, settings, "version", is_bool=False, default="latest")
 
-    settings["version"] = cli_or_config(version, settings, "version", is_bool=False, default="latest")
+        results[config_name] = _handle_files(
+            files,
+            extract_contents_for_js,
+            verbose=verbose,
+            output=sys.stdout
+            if stdout
+            else cli_or_config(output, settings, "output_js", is_bool=False) or DEFAULT_OUTPUT_JS,
+            use_cache=cli_or_config(use_cache, settings, "cache", default=True),
+            store_hash=cli_or_config(save_hash, settings, "hash"),
+            minify=cli_or_config(minify, settings, "minify"),
+            settings=settings,
+        )
 
-    return _handle_files(
-        files,
-        extract_contents_for_js,
-        output,
-        verbose=verbose,
-        use_cache=use_cache,
-        store_hash=save_hash,
-        minify=minify,
-        settings=settings,
-    )
+    return results
 
 
 # import version:
@@ -350,7 +387,7 @@ def bundle_js(
     use_cache: bool = True,
     save_hash: bool = False,
     **settings,
-) -> typing.Optional[str]:
+) -> Optional[str]:
     """
     Importable version of 'build_js'.
     If output is left as None, the bundled code will be returned as a string
@@ -413,36 +450,41 @@ def build_css(
     save_hash: bool = None,
     version: str = None,
     stdout: bool = False,  # overrides output
+    name: Optional[str] = None,
 ):
     """
     Build the CSS bundle (cli only)
     """
-    config = load_config(config)
-    settings = config.get("config", {})
+    configs = load_config(config)
 
-    minify = cli_or_config(minify, settings, "minify")
-    use_cache = cli_or_config(use_cache, settings, "cache", default=True)
-    save_hash = cli_or_config(save_hash, settings, "hash")
+    result = {}
+    for config_name, config in configs.items():
+        if name and config_name != name:
+            continue
+        if verbose:
+            print(f"Starting on JS for `{config_name}`")
 
-    settings["version"] = cli_or_config(version, settings, "version", is_bool=False, default="latest")
+        settings = config.get("config", {})
 
-    output = (
-        sys.stdout if stdout else cli_or_config(output, settings, "output_css", is_bool=False) or DEFAULT_OUTPUT_CSS
-    )
+        settings["version"] = cli_or_config(version, settings, "version", is_bool=False, default="latest")
 
-    if not (files := (files or config.get("css"))):
-        raise NotFound("css")
+        if not (files := (files or config.get("css"))):
+            raise NotFound("css")
 
-    return _handle_files(
-        files,
-        extract_contents_for_css,
-        output,
-        verbose=verbose,
-        use_cache=use_cache,
-        store_hash=save_hash,
-        minify=minify,
-        settings=settings,
-    )
+        result[config_name] = _handle_files(
+            files,
+            extract_contents_for_css,
+            verbose=verbose,
+            output=sys.stdout
+            if stdout
+            else cli_or_config(output, settings, "output_css", is_bool=False) or DEFAULT_OUTPUT_CSS,
+            use_cache=cli_or_config(use_cache, settings, "cache", default=True),
+            store_hash=cli_or_config(save_hash, settings, "hash"),
+            minify=cli_or_config(minify, settings, "minify"),
+            settings=settings,
+        )
+
+    return result
 
 
 # import version:
@@ -454,7 +496,7 @@ def bundle_css(
     use_cache: bool = True,
     save_hash: bool = False,
     **settings,
-) -> typing.Optional[str]:
+) -> Optional[str]:
     """
     Importable version of 'build_css'.
     If output is left as None, the bundled code will be returned as a string
@@ -502,32 +544,66 @@ def build(
     use_cache: bool = None,
     save_hash: bool = None,
     version: str = None,
+    name: Optional[str] = None,
 ):
     """
     Build the JS and CSS bundle
     """
-    # invoke build
-    settings = load_config(config, verbose=True).get("config", {})
 
-    minify = cli_or_config(minify, settings, "minify")
-    use_cache = cli_or_config(use_cache, settings, "cache", default=True)
-    save_hash = cli_or_config(save_hash, settings, "hash")
+    configs = load_config(config, verbose=True)
 
-    # second argument of build_ is None, so files will be loaded from config.
-    # --files can be supplied for the build-js or build-css methods, but not for normal build
-    # since it would be too ambiguous to determine whether the files should be compiled as JS or CSS.
     result = []
-    try:
-        result.append(build_js(c, None, config, verbose, output_js, minify, use_cache, save_hash, version))
-    except NotFound as e:
-        warnings.warn(str(e), source=e)
 
-    try:
-        result.append(
-            build_css(c, None, config, verbose, output_css, minify, use_cache, save_hash, version),
-        )
-    except NotFound as e:
-        warnings.warn(str(e), source=e)
+    for config_name, config_dict in configs.items():
+        if name and config_name != name:
+            continue
+
+        settings = config_dict.get("config", {})
+
+        do_minify = cli_or_config(minify, settings, "minify")
+        do_use_cache = cli_or_config(use_cache, settings, "cache", default=True)
+        do_save_hash = cli_or_config(save_hash, settings, "hash")
+
+        # second argument of build_ is None, so files will be loaded from config.
+        # --files can be supplied for the build-js or build-css methods, but not for normal build
+        # since it would be too ambiguous to determine whether the files should be compiled as JS or CSS.
+        try:
+            result.append(
+                build_js(
+                    c,
+                    None,
+                    config,
+                    verbose,
+                    output_js,
+                    do_minify,
+                    do_use_cache,
+                    do_save_hash,
+                    version,
+                    stdout=False,
+                    name=config_name,
+                )
+            )
+        except NotFound as e:
+            warnings.warn(str(e), source=e)
+
+        try:
+            result.append(
+                build_css(
+                    c,
+                    None,
+                    config,
+                    verbose,
+                    output_css,
+                    do_minify,
+                    do_use_cache,
+                    do_save_hash,
+                    version,
+                    stdout=False,
+                    name=config_name,
+                ),
+            )
+        except NotFound as e:
+            warnings.warn(str(e), source=e)
 
     return result
 
