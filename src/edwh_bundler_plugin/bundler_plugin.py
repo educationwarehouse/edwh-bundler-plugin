@@ -243,8 +243,7 @@ class FileHandler(typing.Protocol):
     # bijv. extract_contents_for_js, extract_contents_for_css
     def __call__(
         self, file: dict | str, settings: dict, cache: bool = True, minify: bool = True, verbose: bool = False
-    ) -> str:
-        ...
+    ) -> str: ...
 
 
 def _handle_files(
@@ -303,7 +302,8 @@ def _handle_files(
     with start_buffer(output) as bufferf:
         for inf in files:
             if not minify:
-                bufferf.write(f"/* SOURCE: {inf} */\n")
+                src = str(inf).replace("/*", "//").replace("*/", "")
+                bufferf.write(f"/* SOURCE: {src} */\n")
 
             res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
 
@@ -366,9 +366,11 @@ def build_js(
             files,
             extract_contents_for_js,
             verbose=verbose,
-            output=sys.stdout
-            if stdout
-            else cli_or_config(output, settings, "output_js", is_bool=False) or DEFAULT_OUTPUT_JS,
+            output=(
+                sys.stdout
+                if stdout
+                else cli_or_config(output, settings, "output_js", is_bool=False) or DEFAULT_OUTPUT_JS
+            ),
             use_cache=cli_or_config(use_cache, settings, "cache", default=True),
             store_hash=cli_or_config(save_hash, settings, "hash"),
             minify=cli_or_config(minify, settings, "minify"),
@@ -475,9 +477,11 @@ def build_css(
             files,
             extract_contents_for_css,
             verbose=verbose,
-            output=sys.stdout
-            if stdout
-            else cli_or_config(output, settings, "output_css", is_bool=False) or DEFAULT_OUTPUT_CSS,
+            output=(
+                sys.stdout
+                if stdout
+                else cli_or_config(output, settings, "output_css", is_bool=False) or DEFAULT_OUTPUT_CSS
+            ),
             use_cache=cli_or_config(use_cache, settings, "cache", default=True),
             store_hash=cli_or_config(save_hash, settings, "hash"),
             minify=cli_or_config(minify, settings, "minify"),
@@ -713,11 +717,11 @@ def version_exists(db: sqlite3.Connection, filetype: str, version: str):
     return db.execute(query, (filetype, version)).fetchone()["c"] > 0
 
 
-def prompt_changelog(db: sqlite3.Connection, filetype: str, version: str):
+def prompt_changelog(db: sqlite3.Connection, filename: str, filetype: str, version: str):
     load_dotenv()
 
-    query = "SELECT id, changelog FROM bundle_version WHERE filetype = ? AND version = ?;"
-    row = db.execute(query, (filetype, version)).fetchone()
+    query = "SELECT id, changelog FROM bundle_version WHERE filename = ? AND filetype = ? AND version = ?;"
+    row = db.execute(query, (filename, filetype, version)).fetchone()
     if row["changelog"]:
         print("Changelog already filled in! ", "It can be updated at:")
     else:
@@ -777,7 +781,7 @@ def calculate_file_hash(c: Context, filename: str | Path):
 
 @task()
 def publish(
-    c,
+    c: Context,
     version: str = None,
     major: bool = False,
     minor: bool = False,
@@ -788,7 +792,7 @@ def publish(
     config: str = DEFAULT_INPUT_LTS,
     force: bool = False,
 ):
-    c: invoke.context.Context
+    load_dotenv()
     db = setup_db(c)
     previous = get_latest_version(db, "js")
 
@@ -804,17 +808,16 @@ def publish(
         print(f"CSS Version {version} already exists!")
         css = confirm("Are you sure you want to overwrite it? ", force)
 
-    output_js = output_css = None
-    if js and css:
-        output_js, output_css = build(c, config=config, version=version, verbose=verbose)
-    elif js:
+    output_js = {}
+    if js:
         output_js = build_js(c, config=config, version=version, verbose=verbose)
-    elif css:
-        output_css = build_css(c, config=config, version=version, verbose=verbose)
-    # else: no build
 
-    if output_js:
-        go, file_hash, filename, file_contents = _should_publish(c, force, output_js, previous.get("hash"), "JS")
+    output_css = {}
+    if css:
+        output_css = build_css(c, config=config, version=version, verbose=verbose)
+
+    for key, js_file in output_js.items():
+        go, file_hash, filename, file_contents = _should_publish(c, force, js_file, previous.get("hash"), "JS")
 
         if go:
             insert_version(
@@ -833,12 +836,12 @@ def publish(
                     "contents": file_contents,
                 },
             )
-            print(f"JS version {version} published.")
-            prompt_changelog(db, "js", version)
+            print(f"{filename} (JS) version {version} published.")
+            prompt_changelog(db, filename, "js", version)
 
-    if output_css:
+    for key, css_file in output_css.items():
         previous_css = get_latest_version(db, "css")
-        go, file_hash, filename, file_contents = _should_publish(c, force, output_css, previous_css.get("hash"), "CSS")
+        go, file_hash, filename, file_contents = _should_publish(c, force, css_file, previous_css.get("hash"), "CSS")
 
         if go:
             insert_version(
@@ -857,13 +860,13 @@ def publish(
                     "contents": file_contents,
                 },
             )
-            print(f"CSS version {version} published.")
-            prompt_changelog(db, "css", version)
+            print(f"{filename} (CSS) version {version} published.")
+            prompt_changelog(db, filename, "css", version)
 
     rmtree(TEMP_OUTPUT_DIR)
 
     # after publish: run `up -s py4web` so the bjoerns are all updated
-    if confirm("Would you like to restart py4web?"):
+    if confirm("Would you like to restart py4web? [yN] "):
         c.run("edwh up -s py4web")
 
 
@@ -875,7 +878,7 @@ def _should_publish(
     file_hash = calculate_file_hash(c, output_path)
     if file_hash == previous_hash:
         print(f"{filetype} hash matches previous version.")
-        go = confirm("Are you sure you want to release a new version? ", force)
+        go = confirm("Are you sure you want to release a new version? [yN] ", force)
     else:
         go = True
     if not go:
