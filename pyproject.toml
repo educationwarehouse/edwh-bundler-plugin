@@ -29,6 +29,7 @@ dependencies = [
     'python-dotenv',
     'libsass',
     'rjsmin',
+    'dukpy',
     'requests',
     'pyyaml',
     'configuraptor',

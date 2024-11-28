@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import io
 import os
 import re
@@ -14,6 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from shutil import rmtree
+from typing import Optional
 
 import edwh
 import invoke
@@ -26,7 +28,18 @@ from .css import extract_contents_for_css
 from .js import extract_contents_for_js
 from .shared import truthy
 
-now = datetime.utcnow
+
+def now():
+    """
+    Backwards and forwards compatible way to get the current datetime in UTC.
+    """
+    try:
+        # 3.12
+        return datetime.now(dt.UTC)
+    except AttributeError:
+        # 3.10
+        return datetime.utcnow()
+
 
 # prgram is created in __init__
 
@@ -111,7 +124,10 @@ def _load_config(fname: str = DEFAULT_INPUT, strict=False) -> tuple[str, dict]:
         return "", {}
 
 
-def load_config(fname: str = DEFAULT_INPUT, strict=True, verbose=False) -> dict:
+def load_config(fname: str = DEFAULT_INPUT, strict=True, verbose=False) -> dict[str, dict]:
+    """
+    Returns a dict of {name: config dict} where 'name' will be _ if bundle.yaml contains only one config.
+    """
     file_used, data = _load_config(fname, strict=strict)
 
     if not data and strict:
@@ -120,7 +136,10 @@ def load_config(fname: str = DEFAULT_INPUT, strict=True, verbose=False) -> dict:
     elif verbose:
         print(f"Using config: {file_used}", file=sys.stderr)
 
-    return data or {}
+    if data.get("configurations"):
+        return data["configurations"]
+    else:
+        return {"_": data} if data else {}
 
 
 @contextmanager
@@ -194,11 +213,11 @@ def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> st
         # recursive fill nested values:
         return {k: _fill_variables(v, variables) for k, v in setting.items()}
 
-    if "$" not in setting:
+    if "$" not in str(setting):
         return setting
 
     for reg, repl in variables.items():
-        setting = reg.sub(str(repl), setting)
+        setting = reg.sub(str(repl), str(setting))
 
     return setting
 
@@ -220,9 +239,16 @@ def store_file_hash(input_filename: str, output_filename: str = None):
     return output_filename
 
 
+class FileHandler(typing.Protocol):
+    # bijv. extract_contents_for_js, extract_contents_for_css
+    def __call__(
+        self, file: dict | str, settings: dict, cache: bool = True, minify: bool = True, verbose: bool = False
+    ) -> str: ...
+
+
 def _handle_files(
     files: list,
-    callback: typing.Callable,
+    callback: FileHandler,
     output: str | typing.IO,
     verbose: bool,
     use_cache: bool,
@@ -275,7 +301,12 @@ def _handle_files(
 
     with start_buffer(output) as bufferf:
         for inf in files:
+            if not minify:
+                src = str(inf).replace("/*", "//").replace("*/", "")
+                bufferf.write(f"/* SOURCE: {src} */\n")
+
             res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
+
             bufferf.write(res + "\n")
             if verbose:
                 print(f"Handled {inf}", file=sys.stderr)
@@ -308,37 +339,45 @@ def build_js(
     save_hash: bool = None,
     version: str = None,
     stdout: bool = False,  # overrides output
+    name: Optional[str] = None,
 ):
     """
     Build the JS bundle (cli only)
     """
-    config = load_config(config)
+    configs = load_config(config)
 
-    files = files or config.get("js")
+    results = {}
+    for config_name, config in configs.items():
+        if name and config_name != name:
+            continue
+        if verbose:
+            print(f"Starting on JS for `{config_name}`")
 
-    if not files:
-        raise NotFound("js")
+        files = files or config.get("js")
 
-    settings = config.get("config", {})
+        if not files:
+            raise NotFound("js")
 
-    minify = cli_or_config(minify, settings, "minify")
-    use_cache = cli_or_config(use_cache, settings, "cache", default=True)
-    save_hash = cli_or_config(save_hash, settings, "hash")
+        settings = config.get("config", {})
 
-    output = sys.stdout if stdout else cli_or_config(output, settings, "output_js", is_bool=False) or DEFAULT_OUTPUT_JS
+        settings["version"] = cli_or_config(version, settings, "version", is_bool=False, default="latest")
 
-    settings["version"] = cli_or_config(version, settings, "version", is_bool=False, default="latest")
+        results[config_name] = _handle_files(
+            files,
+            extract_contents_for_js,
+            verbose=verbose,
+            output=(
+                sys.stdout
+                if stdout
+                else cli_or_config(output, settings, "output_js", is_bool=False) or DEFAULT_OUTPUT_JS
+            ),
+            use_cache=cli_or_config(use_cache, settings, "cache", default=True),
+            store_hash=cli_or_config(save_hash, settings, "hash"),
+            minify=cli_or_config(minify, settings, "minify"),
+            settings=settings,
+        )
 
-    return _handle_files(
-        files,
-        extract_contents_for_js,
-        output,
-        verbose=verbose,
-        use_cache=use_cache,
-        store_hash=save_hash,
-        minify=minify,
-        settings=settings,
-    )
+    return results
 
 
 # import version:
@@ -350,7 +389,7 @@ def bundle_js(
     use_cache: bool = True,
     save_hash: bool = False,
     **settings,
-) -> typing.Optional[str]:
+) -> Optional[str]:
     """
     Importable version of 'build_js'.
     If output is left as None, the bundled code will be returned as a string
@@ -413,36 +452,43 @@ def build_css(
     save_hash: bool = None,
     version: str = None,
     stdout: bool = False,  # overrides output
+    name: Optional[str] = None,
 ):
     """
     Build the CSS bundle (cli only)
     """
-    config = load_config(config)
-    settings = config.get("config", {})
+    configs = load_config(config)
 
-    minify = cli_or_config(minify, settings, "minify")
-    use_cache = cli_or_config(use_cache, settings, "cache", default=True)
-    save_hash = cli_or_config(save_hash, settings, "hash")
+    result = {}
+    for config_name, config in configs.items():
+        if name and config_name != name:
+            continue
+        if verbose:
+            print(f"Starting on JS for `{config_name}`")
 
-    settings["version"] = cli_or_config(version, settings, "version", is_bool=False, default="latest")
+        settings = config.get("config", {})
 
-    output = (
-        sys.stdout if stdout else cli_or_config(output, settings, "output_css", is_bool=False) or DEFAULT_OUTPUT_CSS
-    )
+        settings["version"] = cli_or_config(version, settings, "version", is_bool=False, default="latest")
 
-    if not (files := (files or config.get("css"))):
-        raise NotFound("css")
+        if not (files := (files or config.get("css"))):
+            raise NotFound("css")
 
-    return _handle_files(
-        files,
-        extract_contents_for_css,
-        output,
-        verbose=verbose,
-        use_cache=use_cache,
-        store_hash=save_hash,
-        minify=minify,
-        settings=settings,
-    )
+        result[config_name] = _handle_files(
+            files,
+            extract_contents_for_css,
+            verbose=verbose,
+            output=(
+                sys.stdout
+                if stdout
+                else cli_or_config(output, settings, "output_css", is_bool=False) or DEFAULT_OUTPUT_CSS
+            ),
+            use_cache=cli_or_config(use_cache, settings, "cache", default=True),
+            store_hash=cli_or_config(save_hash, settings, "hash"),
+            minify=cli_or_config(minify, settings, "minify"),
+            settings=settings,
+        )
+
+    return result
 
 
 # import version:
@@ -454,7 +500,7 @@ def bundle_css(
     use_cache: bool = True,
     save_hash: bool = False,
     **settings,
-) -> typing.Optional[str]:
+) -> Optional[str]:
     """
     Importable version of 'build_css'.
     If output is left as None, the bundled code will be returned as a string
@@ -502,32 +548,66 @@ def build(
     use_cache: bool = None,
     save_hash: bool = None,
     version: str = None,
+    name: Optional[str] = None,
 ):
     """
     Build the JS and CSS bundle
     """
-    # invoke build
-    settings = load_config(config, verbose=True).get("config", {})
 
-    minify = cli_or_config(minify, settings, "minify")
-    use_cache = cli_or_config(use_cache, settings, "cache", default=True)
-    save_hash = cli_or_config(save_hash, settings, "hash")
+    configs = load_config(config, verbose=True)
 
-    # second argument of build_ is None, so files will be loaded from config.
-    # --files can be supplied for the build-js or build-css methods, but not for normal build
-    # since it would be too ambiguous to determine whether the files should be compiled as JS or CSS.
     result = []
-    try:
-        result.append(build_js(c, None, config, verbose, output_js, minify, use_cache, save_hash, version))
-    except NotFound as e:
-        warnings.warn(str(e), source=e)
 
-    try:
-        result.append(
-            build_css(c, None, config, verbose, output_css, minify, use_cache, save_hash, version),
-        )
-    except NotFound as e:
-        warnings.warn(str(e), source=e)
+    for config_name, config_dict in configs.items():
+        if name and config_name != name:
+            continue
+
+        settings = config_dict.get("config", {})
+
+        do_minify = cli_or_config(minify, settings, "minify")
+        do_use_cache = cli_or_config(use_cache, settings, "cache", default=True)
+        do_save_hash = cli_or_config(save_hash, settings, "hash")
+
+        # second argument of build_ is None, so files will be loaded from config.
+        # --files can be supplied for the build-js or build-css methods, but not for normal build
+        # since it would be too ambiguous to determine whether the files should be compiled as JS or CSS.
+        try:
+            result.append(
+                build_js(
+                    c,
+                    None,
+                    config,
+                    verbose,
+                    output_js,
+                    do_minify,
+                    do_use_cache,
+                    do_save_hash,
+                    version,
+                    stdout=False,
+                    name=config_name,
+                )
+            )
+        except NotFound as e:
+            warnings.warn(str(e), source=e)
+
+        try:
+            result.append(
+                build_css(
+                    c,
+                    None,
+                    config,
+                    verbose,
+                    output_css,
+                    do_minify,
+                    do_use_cache,
+                    do_save_hash,
+                    version,
+                    stdout=False,
+                    name=config_name,
+                ),
+            )
+        except NotFound as e:
+            warnings.warn(str(e), source=e)
 
     return result
 
@@ -637,11 +717,11 @@ def version_exists(db: sqlite3.Connection, filetype: str, version: str):
     return db.execute(query, (filetype, version)).fetchone()["c"] > 0
 
 
-def prompt_changelog(db: sqlite3.Connection, filetype: str, version: str):
+def prompt_changelog(db: sqlite3.Connection, filename: str, filetype: str, version: str):
     load_dotenv()
 
-    query = "SELECT id, changelog FROM bundle_version WHERE filetype = ? AND version = ?;"
-    row = db.execute(query, (filetype, version)).fetchone()
+    query = "SELECT id, changelog FROM bundle_version WHERE filename = ? AND filetype = ? AND version = ?;"
+    row = db.execute(query, (filename, filetype, version)).fetchone()
     if row["changelog"]:
         print("Changelog already filled in! ", "It can be updated at:")
     else:
@@ -695,13 +775,13 @@ def _decide_new_version(major: int, minor: int, patch: int, previous: dict, vers
     return major, minor, patch, version
 
 
-def calculate_file_hash(c: Context, filename: str):
+def calculate_file_hash(c: Context, filename: str | Path):
     return c.run(f"sha1sum {filename}", hide=True).stdout.split(" ")[0]
 
 
 @task()
 def publish(
-    c,
+    c: Context,
     version: str = None,
     major: bool = False,
     minor: bool = False,
@@ -712,7 +792,7 @@ def publish(
     config: str = DEFAULT_INPUT_LTS,
     force: bool = False,
 ):
-    c: invoke.context.Context
+    load_dotenv()
     db = setup_db(c)
     previous = get_latest_version(db, "js")
 
@@ -728,17 +808,16 @@ def publish(
         print(f"CSS Version {version} already exists!")
         css = confirm("Are you sure you want to overwrite it? ", force)
 
-    output_js = output_css = None
-    if js and css:
-        output_js, output_css = build(c, config=config, version=version, verbose=verbose)
-    elif js:
+    output_js = {}
+    if js:
         output_js = build_js(c, config=config, version=version, verbose=verbose)
-    elif css:
-        output_css = build_css(c, config=config, version=version, verbose=verbose)
-    # else: no build
 
-    if output_js:
-        go, file_hash, filename, file_contents = _should_publish(c, force, output_js, previous.get("hash"), "JS")
+    output_css = {}
+    if css:
+        output_css = build_css(c, config=config, version=version, verbose=verbose)
+
+    for key, js_file in output_js.items():
+        go, file_hash, filename, file_contents = _should_publish(c, force, js_file, previous.get("hash"), "JS")
 
         if go:
             insert_version(
@@ -757,12 +836,12 @@ def publish(
                     "contents": file_contents,
                 },
             )
-            print(f"JS version {version} published.")
-            prompt_changelog(db, "js", version)
+            print(f"{filename} (JS) version {version} published.")
+            prompt_changelog(db, filename, "js", version)
 
-    if output_css:
+    for key, css_file in output_css.items():
         previous_css = get_latest_version(db, "css")
-        go, file_hash, filename, file_contents = _should_publish(c, force, output_css, previous_css.get("hash"), "CSS")
+        go, file_hash, filename, file_contents = _should_publish(c, force, css_file, previous_css.get("hash"), "CSS")
 
         if go:
             insert_version(
@@ -781,35 +860,34 @@ def publish(
                     "contents": file_contents,
                 },
             )
-            print(f"CSS version {version} published.")
-            prompt_changelog(db, "css", version)
+            print(f"{filename} (CSS) version {version} published.")
+            prompt_changelog(db, filename, "css", version)
 
     rmtree(TEMP_OUTPUT_DIR)
 
     # after publish: run `up -s py4web` so the bjoerns are all updated
-    c.run("edwh up -s py4web")
+    if confirm("Would you like to restart py4web? [yN] "):
+        c.run("edwh up -s py4web")
 
 
 def _should_publish(
-    c: Context, force: bool, output_path: str, previous_hash: str, filetype: typing.Literal["JS", "CSS"]
+    c: Context, force: bool, output_filename: str | Path, previous_hash: str, filetype: typing.Literal["JS", "CSS"]
 ):
+    output_path = Path(output_filename)
+
     file_hash = calculate_file_hash(c, output_path)
     if file_hash == previous_hash:
         print(f"{filetype} hash matches previous version.")
-        go = confirm("Are you sure you want to release a new version? ", force)
+        go = confirm("Are you sure you want to release a new version? [yN] ", force)
     else:
         go = True
     if not go:
         return False, None, None, None
 
     # if go:
+    file_contents = output_path.read_text(encoding="UTF-8")
 
-    with open(output_path, "r", encoding="UTF-8") as f:
-        file_contents = f.read()
-
-    filename = output_path.split("/")[-1]
-
-    return True, file_hash, filename, file_contents
+    return True, file_hash, output_path.name, file_contents
 
 
 @task(name="list")

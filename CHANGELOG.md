@@ -2,12 +2,51 @@
 
 <!--next-version-placeholder-->
 
-## v1.0.5 (2024-11-28)
+## v1.2.2 (2024-11-28)
 
 ### Fix
 
 * Add gitignore in cdn_cache folder ([`8001e51`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/8001e5169cfb69524d3877333730e6828263d1ed))
 * Raise exception if cdn returns an error status code instead of pasting the error text into the bundle ([`bb29424`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/bb294248ef421ca4553d80722e924536889432c9))
+
+
+## v1.2.1 (2024-09-30)
+
+### Fix
+
+* Make `bundle.publish` work with multiple configurations ([`3376235`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/337623560cfa0620be60aa29e594327f7c00efb8))
+
+## v1.2.0 (2024-09-30)
+
+### Feature
+
+* Allow specifying multiple `configurations`, include 'source' if output is not minified ([`ae2abf6`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/ae2abf6657633f3d54f2d5d5fb21362137ca3b6f))
+
+## v1.1.0 (2024-07-04)
+
+### Feature
+
+* Started on TypeScript support via dukpy (+ custom loader for browser and buildtime import resolver) ([`a8ab5cd`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/a8ab5cda1030c16ac3e2faa67c5485e5a873dd80))
+
+### Fix
+
+* Minor tweaks in TS loading: ([`9366383`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/93663835cfd6fab2f17db4d66c3018c589288d3e))
+
+### Documentation
+
+* Added docstrings to new TS parts and updated README ([`ce0d8b2`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/ce0d8b24175b6607442cd2b79f2a10a75b270eb0))
+
+## v1.0.6 (2024-04-22)
+
+### Fix
+
+* Also work with Path for should_publish ([`f58efe5`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/f58efe5dbf9057e68256af8e3621cd974d93e19b))
+
+## v1.0.5 (2024-04-22)
+
+### Fix
+
+* Don't crash if 'setting' is not a str (e.g. Path) ([`9d817fe`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/9d817fe1ea04affd9e8d178fda5b50631a1b2a2c))
 
 ## v1.0.4 (2024-04-12)
 

@@ -7,7 +7,7 @@
 
 EDWH Python-only bundler for static assets (JS and CSS).
 Try it out with an example:
-`edwh bundle.build --input example.yaml -v`
+`edwh bundle.build --input example.yaml --verbose`
 
 **Table of Contents**
 
@@ -45,6 +45,9 @@ comments and newlines).
 These JS and _hs files can be fetched from a remote URL or loaded from a file path.
 CSS files can be also included in the bundle, and will be inlined as `<style>`s in the page's head.
 The same goes for HTML files, which will be appended to the end of the `<body>` (useful for `<template>`s).
+Typescript files can now also be bundled, using [dukpy](https://pypi.org/project/dukpy/).
+Basic imports should work thanks to a custom resolver, but this hasn't been tested with anything complex such
+as `node_modules` yet.
 
 ### CSS
 
@@ -121,7 +124,7 @@ css:
   - |
     // inline scss or css
   - file: url_or_path.scss
-    variables:              # extra SCSS variables
+    variables: # extra SCSS variables
       primary: "#000033"
       secondary: "green"
       width: "20px"
@@ -136,7 +139,47 @@ SCSS will be disabled for files with that extension if the config option is set 
 The `scope` selector can be any CSS selector (e.g. `#id`, `.class`, `element` etc.)
 The `scope` and `scss` options do not work together, as `scope` always uses scss to add the parent selector.
 
-### Config
+### Multiple Configurations
+
+You can define multiple configurations within a single config file to handle different output needs, such as
+minified and unminified versions. Shared assets like JavaScript and CSS files can be defined once and reused across
+different configurations.
+**Example:**
+
+```yaml
+# bundle-multiple.yaml
+shared:
+  js: &shared_js
+    - $input_css/example.ts
+    - $input_css/main2.ts
+  css: &shared_css
+    - $input_css/example.sass
+
+configurations:
+  minified:
+    js: *shared_js
+    css: *shared_css
+    config:
+      minify: 1
+      output_js: static/js/bundled.min.js
+      output_css: static/css/bundled.min.css
+
+  unminified:
+    js: *shared_js
+    css: *shared_css
+    config:
+      minify: 0
+      output_js: static/js/bundled.js
+      output_css: static/css/bundled.css
+```
+
+To compile only one of the configurations in a file, you can use `--name`:
+```bash
+edwh bundle.build --config bundle-multiple.yaml --name minified
+```
+
+
+### CLI Config
 
 The config options from the config file can be overridden on the command line with the corresponding flags (
 see `edwh bundle.build -h`).

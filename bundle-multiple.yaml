@@ -1,0 +1,53 @@
+shared:
+  js: &shared_js
+    - https://unpkg.com/htmx.org@1.9.2/dist/htmx.min.js
+    - $input_css/example.ts
+    - $input_css/main2.ts
+  css: &shared_css
+    - https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css
+    - $input_css/example.sass
+    - |
+      // sass
+      .success
+        color: $base-color
+    - file: |
+        // scss
+
+        .alert {
+          color: $base-color;
+          border: 1px solid $border-color;
+        }
+      variables:
+        border-color: rgba($base-color, 0.88)
+
+configurations:
+
+  minified:
+    js: *shared_js
+    css: *shared_css
+
+    config:
+      minify: 1
+      filename: bundled
+      input_css: example_src
+      output-css: static/css/$filename-$version.min.css
+      output_js: static/js/$filename-$version.min.js
+      hash: 1
+      scss-variables:
+        - variables.toml
+        # - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=${AUTH_TOKEN}
+
+  unminified:
+    js: *shared_js
+    css: *shared_css
+
+    config:
+      minify: 0
+      filename: bundled
+      input_css: example_src
+      output-css: static/css/$filename-$version.css
+      output_js: static/js/$filename-$version.js
+      hash: 1
+      scss-variables:
+        - variables.toml
+        # - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=${AUTH_TOKEN}

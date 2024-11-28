@@ -1,8 +1,10 @@
-# methods for converting JS and hyperscript files
+# methods for converting JS/TS and hyperscript files
 from __future__ import annotations
 
-from functools import singledispatch
+from pathlib import Path
+from typing import Optional
 
+import dukpy
 from rjsmin import jsmin
 
 from .shared import (
@@ -13,25 +15,71 @@ from .shared import (
     extract_contents_local,
 )
 
-# @singledispatch
-# def extract_contents_for_js(file, cache=True, minify=True) -> str:
-#     """
-#     'file' is one line in the 'js' part of the config yaml.
-#     > singledispatch executes a different method based on the Type of the variable 'file'
-#     (yes, useful typing in Python - wow.)
-#
-#     Args:
-#         file (str): file/url path (dict is only supported in CSS right now)
-#         cache (bool): get CDN files from local cache
-#         minify (bool): minify file (using rjsmin for js or custom logic for hyperscript)
-#
-#     Returns: string of contents to write to the js bundle
-#
-#     """
-#     raise NotImplementedError("unknown type used, please use str or dict as first arg")
+
+def find_dependencies(ts_compiled: str) -> list[str]:
+    """
+    Use dukpy to parse a System.register call in order to extract paths of TS dependencies (e.g. `./shared`).
+    """
+    system_code = """
+    const System = {
+        register(deps, _) {
+            return deps
+        }
+    };
+    """
+    return dukpy.evaljs(f"{system_code};{ts_compiled}")
 
 
-# @extract_contents_for_js.register
+def extract_contents_typescript(_path: str | Path, settings: dict, name: Optional[str] = None) -> str:
+    """
+    Convert typescript to JS (via dukpy) and prepend dependencies.
+    """
+    path = Path(_path)
+    typescript_code = extract_contents_local(path)
+
+    js_code = dukpy.typescript_compile(typescript_code)
+
+    dependencies = find_dependencies(js_code)
+    # System.register([deps] ...
+    # -> System.register(namespace, [deps] ...
+    namespace = name or "__main__"
+    js_code = js_code.replace("System.register(", f"System.register('{namespace}', ", 1)
+
+    for dep in dependencies:
+        key = f"__typescript_dependency_{dep}__"
+        if key in settings:
+            # already included
+            continue
+
+        settings[key] = True
+        dep_path = path.parent.joinpath(dep).with_suffix(".ts")
+
+        dep_code = extract_contents_typescript(dep_path, settings, name=dep)
+
+        js_code = dep_code + "\n" + js_code
+
+    return include_typescript_system_loader(settings) + js_code
+
+
+LOADER_KEY = "__loader_code_included_once__"
+
+
+def include_typescript_system_loader(settings: dict):
+    """
+    Instead of depending on SystemJS like dukpy does,
+    ts_loader.js contains a custom loader that tracks and injects dependencies at build time.
+    """
+    if LOADER_KEY in settings:
+        return ""
+
+    pth = Path(__file__).parent / "js/ts_loader.js"
+    loader_code = extract_contents_local(pth)
+
+    settings[LOADER_KEY] = 1
+
+    return loader_code
+
+
 def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, verbose=False) -> str:
     """
     Download file from remote if a url is supplied, load from local otherwise.
@@ -44,6 +92,11 @@ def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, 
     elif file.endswith((".js", "._hs", ".html", ".htm")):
         # read
         contents = extract_contents_local(file)
+    elif file.endswith(".ts"):
+        contents = extract_contents_typescript(file, settings)
+        if minify:
+            contents = jsmin(contents)
+
     elif file.startswith(("_(", "//", "/*", "_hyperscript(")):
         # raw code, should start with comment in JS to identify it
         contents = file
@@ -69,12 +122,6 @@ def extract_contents_for_js(file: str, settings: dict, cache=True, minify=True, 
         contents = _append_to_head(contents)
 
     return contents
-
-
-#
-# @extract_contents_for_js.register
-# def _(file: dict, cache=True, minify=True) -> str:
-#     raise NotImplementedError("dict for JS entries is not supported yet")
 
 
 def _include_hyperscript(contents: str) -> str:
