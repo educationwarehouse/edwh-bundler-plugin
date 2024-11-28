@@ -25,7 +25,9 @@ def _extract_contents_cdn(url: str) -> str:
     """
     Download contents from some url
     """
-    return requests.get(url, allow_redirects=True, timeout=10).text
+    resp = requests.get(url, allow_redirects=True, timeout=10)
+    resp.raise_for_status()
+    return resp.text
 
 
 def cache_hash(filename: str) -> str:
