@@ -79,6 +79,7 @@ change_log = "CHANGELOG.md"
 upload_to_repository = false
 upload_to_release = false
 build_command = "hatch build"
+version_source = "tag"
 
 parser_angular_minor_types = "feat,minor"
 parser_angular_patch_types = "fix,perf,refactor,build,chore,patch"
