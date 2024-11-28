@@ -41,7 +41,7 @@ def cache_hash(filename: str) -> str:
 
 def setup_cdn_cache() -> Path:
     CACHE_DIR.mkdir(exist_ok=True)
-    gitignore = (CACHE_DIR / ".gitignore")
+    gitignore = CACHE_DIR / ".gitignore"
     if not gitignore.exists():
         # .cdn_cache shan't be included in git
         gitignore.write_text("*\n")
