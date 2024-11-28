@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v1.0.5 (2024-11-28)
+
+### Fix
+
+* Add gitignore in cdn_cache folder ([`8001e51`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/8001e5169cfb69524d3877333730e6828263d1ed))
+* Raise exception if cdn returns an error status code instead of pasting the error text into the bundle ([`bb29424`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/bb294248ef421ca4553d80722e924536889432c9))
+
 ## v1.0.4 (2024-04-12)
 
 ### Fix
