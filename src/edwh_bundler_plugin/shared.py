@@ -39,6 +39,16 @@ def cache_hash(filename: str) -> str:
     return hashlib.sha1(filename.encode("UTF-8")).hexdigest()
 
 
+def setup_cdn_cache() -> Path:
+    CACHE_DIR.mkdir(exist_ok=True)
+    gitignore = (CACHE_DIR / ".gitignore")
+    if not gitignore.exists():
+        # .cdn_cache shan't be included in git
+        gitignore.write_text("*\n")
+
+    return CACHE_DIR
+
+
 def extract_contents_cdn(url: str, cache=True) -> str:
     """
     Download contents from some url or from cache if possible/desired
@@ -50,18 +60,16 @@ def extract_contents_cdn(url: str, cache=True) -> str:
     if not cache:
         return _extract_contents_cdn(url)
 
+    cdn_cache = setup_cdn_cache()
     h_url = str(cache_hash(url))
 
-    cache_path = CACHE_DIR / h_url
+    cache_path = cdn_cache / h_url
     if cache_path.exists():
         return extract_contents_local(str(cache_path))
+
     _resp = _extract_contents_cdn(url)
+    cache_path.write_text(_resp)
 
-    if not CACHE_DIR.exists():
-        os.mkdir(CACHE_DIR)
-
-    with open(cache_path, "w") as f:
-        f.write(_resp)
     return _resp
 
 
