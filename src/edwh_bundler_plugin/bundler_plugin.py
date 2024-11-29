@@ -301,6 +301,10 @@ def _handle_files(
 
     with start_buffer(output) as bufferf:
         for inf in files:
+            if not inf:
+                # empty - skip
+                continue
+
             if not minify:
                 src = str(inf).replace("/*", "//").replace("*/", "")
                 bufferf.write(f"/* SOURCE: {src} */\n")
@@ -631,32 +635,81 @@ def dict_factory(cursor: sqlite3.Cursor, row: sqlite3.Row):
 
 
 def assert_chmod_777(c: Context, filepath: str | list[str]):
-    edwh.tasks.require_sudo(c)  # can't chmod without sudo
-
     filepaths: list[str] = [filepath] if isinstance(filepath, str) else filepath
 
+    # filepaths with incorrect chmod are collected,
+    #  so require_sudo only has to be executed if any chmod has to happen
+    #  skipping annoying sudo prompts when sudo is not actually used
+    todos = []
     for fp in filepaths:
         resp = c.run(f'stat --format "%a  %n" {fp}', hide=True)
         chmod = resp.stdout.split(" ")[0]
-        if chmod != 777:
-            c.sudo(f"chmod 777 {fp}")
+        if chmod != "777":
+            todos.append(fp)
+
+    if todos:
+        edwh.tasks.require_sudo(c)  # can't chmod without sudo
+    for todo in todos:
+        c.sudo(f"chmod 777 {todo}")
 
 
-def assert_file_exists(c: Context, db_filepath: str, sql_filepath: str):
-    if not os.path.exists(db_filepath):
+def create_bundle_version_table():
+    sql = """
+    CREATE TABLE IF NOT EXISTS "bundle_version"(
+        "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+        "filetype" CHAR(512),
+        "version" CHAR(512),
+        "filename" CHAR(512),
+        "major" INTEGER,
+        "minor" INTEGER,
+        "patch" INTEGER,
+        "hash" CHAR(512),
+        "created_at" TIMESTAMP,
+        "changelog" TEXT,
+        "contents" TEXT
+    );  
+    """
+    return sql
+
+
+def assert_file_exists(c: Context, db_file: str, sql_file: str):
+    db_filepath = Path(db_file)
+    sql_filepath = Path(sql_file)
+
+    if not db_filepath.parent.exists():
+        db_filepath.parent.mkdir(parents=True)
+    if not sql_filepath.parent.exists():
+        sql_filepath.parent.mkdir(parents=True)
+
+    if not (sql_filepath.exists() and db_filepath.exists()):
+        sql_filepath.touch()
+        db_filepath.touch()
+        with sqlite3.connect(db_file) as con:
+            con.execute(create_bundle_version_table())
+            con.commit()
+    elif not sql_filepath.exists():
+        sql_filepath.touch()
+    elif not db_filepath.exists():
         # load existing
         c.run(f"sqlite3 {db_filepath} < {sql_filepath}")
 
 
-def config_setting(key, default=None, config=None, config_path=None):
+def config_setting(key, default=None, config=None, config_path=None, config_name="_"):
     if not config:
         config = load_config(config_path or DEFAULT_INPUT_LTS)
     re_settings = _regexify_settings(config)
-    var = config.get(key, default)
+
+    if config_name in config:
+        config = config[config_name]
+
+    var = config.get(key) or config.get("config", {}).get(key, default)
     return _fill_variables(var, re_settings)
 
 
 def setup_db(c: invoke.context.Context, config_path=DEFAULT_INPUT_LTS) -> sqlite3.Connection:
+    """
+    note: this does NOT work with multiple configurations in one yaml yet!!
+    """
     db_path = config_setting("output_db", DEFAULT_ASSETS_DB, config_path=config_path)
     sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL, config_path=config_path)
 
@@ -679,28 +732,25 @@ def get_latest_version(db: sqlite3.Connection, filetype: str = None) -> dict:
     return cur.fetchone() or {}
 
 
-def _update_assets_sql(c: invoke.context.Context):
+def _update_assets_sql(c: invoke.context.Context, config: str = None):
     """
     ... todo docs ...
     Should be done after each db.commit()
     """
     # for line in db.iterdump():
-    db_path = config_setting("output_db", DEFAULT_ASSETS_DB)
-    sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL)
+    db_path = config_setting("output_db", DEFAULT_ASSETS_DB, config_path=config)
+    sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL, config_path=config)
 
-    sql: invoke.Result = c.run(f"sqlite3 {db_path} .dump", hide=True)
-
-    with open(sql_path, "w", encoding="UTF-8") as f:
-        f.write(sql.stdout)
+    c.run(f"sqlite3 {db_path} .dump > {sql_path}", hide=True)
 
 
 @task()
-def update_assets_sql(c):
+def update_assets_sql(c, config: str = None):
     # db = setup_db(c)
-    _update_assets_sql(c)
+    _update_assets_sql(c, config)
 
 
-def insert_version(c: invoke.context.Context, db: sqlite3.Connection, values: dict):
+def insert_version(c: invoke.context.Context, db: sqlite3.Connection, values: dict, config: str = None):
     columns = ", ".join(values.keys())
     placeholders = ":" + ", :".join(values.keys())
 
@@ -708,11 +758,11 @@ def insert_version(c: invoke.context.Context, db: sqlite3.Connection, values: di
 
     db.execute(query.format(columns, placeholders), values)
     db.commit()
-    _update_assets_sql(c)
+    _update_assets_sql(c, config)
 
 
 def version_exists(db: sqlite3.Connection, filetype: str, version: str):
-    query = "SELECT COUNT(*) as c FROM bundle_version WHERE filetype = ? AND version = ?;"
+    query = "SELECT COUNT(*) AS c FROM bundle_version WHERE filetype = ? AND version = ?;"
 
     return db.execute(query, (filetype, version)).fetchone()["c"] > 0
 
@@ -735,9 +785,12 @@ def prompt_changelog(db: sqlite3.Connection, filename: str, filetype: str, versi
 
 
 @task()
-def show_changelog_url(c, filetype, version):
-    db = setup_db(c)
-    prompt_changelog(db, filetype, version)
+def show_changelog_url(c, filename, filetype, version, config=DEFAULT_INPUT_LTS):
+    """
+    note: this does NOT work with multiple configurations in one yaml yet!!
+    """
+    db = setup_db(c, config)
+    prompt_changelog(db, filename, filetype, version)
 
 
 def confirm(prompt: str, force=False) -> bool:
@@ -783,17 +836,20 @@ def calculate_file_hash(c: Context, filename: str | Path):
 def publish(
     c: Context,
     version: str = None,
+    config: str = DEFAULT_INPUT_LTS,  # note: goes BEFORE 'css' so this one claims -c !
     major: bool = False,
     minor: bool = False,
     patch: bool = False,
     js: bool = True,
     css: bool = True,
     verbose: bool = False,
-    config: str = DEFAULT_INPUT_LTS,
     force: bool = False,
 ):
+    """
+    note: this does NOT work with multiple configurations in one yaml yet!!
+    """
     load_dotenv()
-    db = setup_db(c)
+    db = setup_db(c, config)
     previous = get_latest_version(db, "js")
 
     TEMP_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -817,6 +873,10 @@ def publish(
         output_css = build_css(c, config=config, version=version, verbose=verbose)
 
     for key, js_file in output_js.items():
+        if isinstance(js_file, tuple):
+            # (file, hash)
+            js_file = js_file[0]
+
         go, file_hash, filename, file_contents = _should_publish(c, force, js_file, previous.get("hash"), "JS")
 
         if go:
@@ -835,11 +895,16 @@ def publish(
                     "changelog": "",
                     "contents": file_contents,
                 },
+                config=config,
             )
             print(f"{filename} (JS) version {version} published.")
             prompt_changelog(db, filename, "js", version)
 
     for key, css_file in output_css.items():
+        if isinstance(css_file, tuple):
+            # (file, hash)
+            css_file = css_file[0]
+
         previous_css = get_latest_version(db, "css")
         go, file_hash, filename, file_contents = _should_publish(c, force, css_file, previous_css.get("hash"), "CSS")
 
@@ -859,15 +924,12 @@ def publish(
                     "changelog": "",
                     "contents": file_contents,
                 },
+                config=config,
             )
             print(f"{filename} (CSS) version {version} published.")
             prompt_changelog(db, filename, "css", version)
 
     rmtree(TEMP_OUTPUT_DIR)
-
-    # after publish: run `up -s py4web` so the bjoerns are all updated
-    if confirm("Would you like to restart py4web? [yN] "):
-        c.run("edwh up -s py4web")
 
 
 def _should_publish(
@@ -891,8 +953,11 @@ def _should_publish(
 
 
 @task(name="list")
-def list_versions(c):
-    db = setup_db(c)
+def list_versions(c, config=DEFAULT_INPUT_LTS):
+    """
+    note: this does NOT work with multiple configurations in one yaml yet!!
+    """
+    db = setup_db(c, config)
     for row in db.execute(
         "SELECT filetype, version FROM bundle_version ORDER BY major DESC, minor DESC, patch DESC"
     ).fetchall():
@@ -900,9 +965,13 @@ def list_versions(c):
 
 
 @task()
-def reset(c):
-    db = setup_db(c)
-    if not confirm("Are you sure you want to reset the versions database? "):
+def reset(c, config=DEFAULT_INPUT_LTS):
+    """
+    note: this does NOT work with multiple configurations in one yaml yet!!
+    """
+    db = setup_db(c, config)
+
+    if not confirm("Are you sure you want to reset the versions database? [yN]"):
         print("Wise.")
         return
 
@@ -910,6 +979,6 @@ def reset(c):
     # ^ that's the whole point of 'reset'.
     db.execute("DELETE FROM bundle_version;")
     db.commit()
-    _update_assets_sql(c)
+    _update_assets_sql(c, config)
 
-    assert db.execute("SELECT COUNT(*) as c FROM bundle_version;").fetchone()["c"] == 0
+    assert db.execute("SELECT COUNT(*) AS c FROM bundle_version;").fetchone()["c"] == 0
