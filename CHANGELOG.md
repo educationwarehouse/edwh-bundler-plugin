@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v1.3.0 (2024-11-29)
+
+### Feature
+
+* Improved `edwh publish`: ([`8365353`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/836535337a9f12596eb010e9829f35787bfc7646))
+
 ## v1.2.2 (2024-11-28)
 
 ### Fix
