@@ -681,13 +681,15 @@ def assert_file_exists(c: Context, db_file: str, sql_file: str):
     if not sql_filepath.parent.exists():
         sql_filepath.parent.mkdir(parents=True)
 
-    if not (sql_filepath.exists() and db_filepath.exists()):
+    if not sql_filepath.exists() and not db_filepath.exists():
+        # db nor sql exist -> start from scratch
         sql_filepath.touch()
         db_filepath.touch()
         with sqlite3.connect(db_file) as con:
             con.execute(create_bundle_version_table())
             con.commit()
     elif not sql_filepath.exists():
+        # db exists, sql doesn't
         sql_filepath.touch()
     elif not db_filepath.exists():
         # load existing
