@@ -1,5 +1,3 @@
-# default 'invoke' tasks
-
 from __future__ import annotations
 
 import datetime as dt
@@ -18,11 +16,11 @@ from shutil import rmtree
 from typing import Optional
 
 import edwh
-import invoke
 import tomlkit
 import yaml
 from dotenv import load_dotenv
-from invoke import Context, task
+from edwh import improved_task as task
+from invoke import Context
 
 from .css import extract_contents_for_css
 from .js import extract_contents_for_js
@@ -275,7 +273,7 @@ def _handle_files(
 
     if verbose:
         print(
-            f"Building {callback.__name__.split('_')[-1]} [verbose]\n" f"{output=}\n",
+            f"Building {callback.__name__.split('_')[-1]} [verbose]\n{output=}\n",
             f"{minify=}\n",
             f"{use_cache=}\n",
             f"{store_hash=}\n",
@@ -540,7 +538,7 @@ def bundle_css(
     return output.read()
 
 
-@task(iterable=["files"])
+@task(iterable=["files"], hookable=False)
 def build(
     c,
     config: str = DEFAULT_INPUT,
@@ -708,7 +706,7 @@ def config_setting(key, default=None, config=None, config_path=None, config_name
     return _fill_variables(var, re_settings)
 
 
-def setup_db(c: invoke.context.Context, config_path=DEFAULT_INPUT_LTS) -> sqlite3.Connection:
+def setup_db(c: Context, config_path=DEFAULT_INPUT_LTS) -> sqlite3.Connection:
     """
     note: this does NOT work with multiple configurations in one yaml yet!!
     """
@@ -734,7 +732,7 @@ def get_latest_version(db: sqlite3.Connection, filetype: str = None) -> dict:
     return cur.fetchone() or {}
 
 
-def _update_assets_sql(c: invoke.context.Context, config: str = None):
+def _update_assets_sql(c: Context, config: str = None):
     """
     ... todo docs ...
     Should be done after each db.commit()
@@ -752,7 +750,7 @@ def update_assets_sql(c, config: str = None):
     _update_assets_sql(c, config)
 
 
-def insert_version(c: invoke.context.Context, db: sqlite3.Connection, values: dict, config: str = None):
+def insert_version(c: Context, db: sqlite3.Connection, values: dict, config: str = None):
     columns = ", ".join(values.keys())
     placeholders = ":" + ", :".join(values.keys())
 

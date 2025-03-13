@@ -24,22 +24,22 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-    'edwh',
-    'tomlkit',
-    'python-dotenv',
-    'libsass',
-    'rjsmin',
-    'dukpy',
-    'requests',
-    'pyyaml',
-    'configuraptor',
-    ]
+    "edwh >= 0.56.6",
+    "tomlkit",
+    "python-dotenv",
+    "libsass",
+    "rjsmin",
+    "dukpy",
+    "requests",
+    "pyyaml",
+    "configuraptor",
+]
 
 [project.optional-dependencies]
 dev = [
     "hatch",
-    # "python-semantic-release",
-    "black",
+    "python-semantic-release < 8",
+    # "black",
     "pytest",
 ]
 
