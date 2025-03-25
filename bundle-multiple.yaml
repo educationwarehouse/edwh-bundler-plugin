@@ -50,4 +50,4 @@ configurations:
       hash: 1
       scss-variables:
         - $input_css/variables.toml
-        # - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=${AUTH_TOKEN}
+        - https://${HOSTINGDOMAIN}/test?secret=${AUTH_TOKEN}

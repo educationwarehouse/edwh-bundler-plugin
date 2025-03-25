@@ -744,7 +744,7 @@ def config_setting(key, default=None, config=None, config_path=None, config_name
         config = config[config_name]
 
     var = config.get(key) or config.get("config", {}).get(key, default)
-    return _fill_variables(var, re_settings)
+    return fill_variables(var, re_settings)
 
 
 def setup_db(c: Context, config_path=DEFAULT_INPUT_LTS) -> sqlite3.Connection:
@@ -1023,3 +1023,28 @@ def reset(c, config=DEFAULT_INPUT_LTS):
     _update_assets_sql(c, config)
 
     assert db.execute("SELECT COUNT(*) AS c FROM bundle_version;").fetchone()["c"] == 0
+
+
+@task()
+def settings(
+    _,
+    config: str = DEFAULT_INPUT,
+    verbose: bool = False,
+    name: Optional[str] = None,
+):
+    configs = load_config(config)
+
+    result = {}
+    for config_name, config in configs.items():
+        if name and config_name != name:
+            continue
+        if verbose:
+            print(f"Starting on JS for `{config_name}`")
+
+        settings = config.get("config", {})
+        re_settings = _regexify_settings(settings)
+        settings = fill_variables(settings, re_settings)
+
+        result[config_name] = settings
+
+    print(yaml.dump(result))
