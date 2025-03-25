@@ -1,7 +1,7 @@
 js:
   # - https://unpkg.com/htmx.org@1.9.2/dist/htmx.min.js
-  - $input_css/example.ts
-  - $input_css/main2.ts
+  - $src/example.ts
+  - $src/main2.ts
 css:
   # - https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css
   - |
@@ -17,16 +17,16 @@ css:
       }
     variables:
       border-color: rgba($base-color, 0.88)
-  - $input_css/example.sass
+  - $src/example.sass
 
 config:
   minify: 1
   filename: bundled
-  input_css: example_src
+  src: example_src
   output-css: static/css/$filename-$version.css
   output_js: static/js/$filename-$version.js
   hash: 1
   scss-variables:
-    - variables.toml
-    # - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=${AUTH_TOKEN}
+    - $src/variables.toml
+    - https://${HOSTINGDOMAIN}/test?secret=${AUTH_TOKEN}
 

@@ -107,38 +107,14 @@ def load_css_contents(file: str, cache: bool = True):
         )
 
 
-DOTENV_RE = re.compile(r"\${(.*?)}")
-
-
-def replace_placeholders(raw_string: str) -> str:
-    def replace(match):
-        key = match.group(1)
-        return os.getenv(key, f"${{{key}}}")
-
-    return DOTENV_RE.sub(replace, raw_string)
-
-
-def load_variables(source: str | list[str] | dict[str, typing.Any] | None) -> dict[str, typing.Any]:
-    load_dotenv()
-
-    if isinstance(source, str):
-        source = replace_placeholders(source)
-    elif isinstance(source, list):
-        source = [replace_placeholders(_) for _ in source]
-    elif source is None:
-        return {}
-
-    return load_data(source)
-
-
 def extract_contents_for_css(file: dict | str, settings: dict, cache=True, minify=True, verbose=False) -> str:
-    variables = load_variables(settings.get("scss_variables"))
+    variables = load_data(settings.get("scss_variables", {}))
     scss = False
     scope = None
     if isinstance(file, dict):
         data = file
         file = data["file"]
-        if block_variables := load_variables(data.get("variables")):
+        if block_variables := load_data(data.get("variables", {})):
             variables |= block_variables
             scss = True
         if scope := data.get("scope"):

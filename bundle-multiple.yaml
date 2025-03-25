@@ -34,7 +34,7 @@ configurations:
       output_js: static/js/$filename-$version.min.js
       hash: 1
       scss-variables:
-        - variables.toml
+        - $input_css/variables.toml
         # - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=${AUTH_TOKEN}
 
   unminified:
@@ -49,5 +49,5 @@ configurations:
       output_js: static/js/$filename-$version.js
       hash: 1
       scss-variables:
-        - variables.toml
+        - $input_css/variables.toml
         # - https://py4web.whitelabel.robin.edwh.nl/api/styles.json?secret=${AUTH_TOKEN}

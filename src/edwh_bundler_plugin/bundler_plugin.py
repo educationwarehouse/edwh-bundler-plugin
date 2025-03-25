@@ -187,29 +187,45 @@ def cli_or_config(
     return (truthy(value) if is_bool else value) if value is not None else config.get(key, default)
 
 
-@typing.overload
-def _fill_variables(setting: str, variables: dict[re.Pattern, str]) -> str:
+DOTENV_RE = re.compile(r"\${(.*?)}")
+
+
+def replace_placeholders(raw_string: str) -> str:
+    def replace(match):
+        key = match.group(1)
+        return os.getenv(key, f"${{{key}}}")
+
+    return DOTENV_RE.sub(replace, raw_string)
+
+
+def _fill_variables_from_dotenv(source: str | list[str] | dict[str, typing.Any] | None) -> dict[str, typing.Any]:
+    """
+    Load ${VARIABLES} from .env and environmnt
+    """
+    load_dotenv()
+
+    if isinstance(source, str):
+        source = replace_placeholders(source)
+    elif isinstance(source, list):
+        source = [replace_placeholders(_) for _ in source]
+    elif isinstance(source, dict):
+        source = {k: _fill_variables_from_dotenv(v) for k, v in source.items()}
+    elif source is None:
+        return {}
+
+    return source
+
+
+def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> str | dict[str, str] | list[str]:
     """
     If a string is passed as setting, the $variables in the string are filled.
-    E.g. "$in_app/path/to/css" + {'in_app': 'apps/cmsx'} -> 'apps/cmsx/path/to/css'
-    """
-
-
-@typing.overload
-def _fill_variables(setting: dict, variables: dict[re.Pattern, str]) -> dict[str, str]:
-    """
-    If a dict of settings is passed, all values are filled. Keys are left alone.
-    """
-
-
-def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> str | dict[str, str]:
-    """
-    Fill in $variables in a dynamic setting.
     E.g. "$in_app/path/to/css" + {'in_app': 'apps/cmsx'} -> 'apps/cmsx/path/to/css'
     """
     if isinstance(setting, dict):
         # recursive fill nested values:
         return {k: _fill_variables(v, variables) for k, v in setting.items()}
+    elif isinstance(setting, list):
+        return [_fill_variables(s, variables) for s in setting]
 
     if "$" not in str(setting):
         return setting
@@ -218,6 +234,30 @@ def _fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> st
         setting = reg.sub(str(repl), str(setting))
 
     return setting
+
+
+@typing.overload
+def fill_variables(setting: str, variables: dict[re.Pattern, str]) -> str:
+    """
+    If a string is passed as setting, the $variables in the string are filled.
+    E.g. "$in_app/path/to/css" + {'in_app': 'apps/cmsx'} -> 'apps/cmsx/path/to/css'
+    """
+
+
+@typing.overload
+def fill_variables(setting: dict, variables: dict[re.Pattern, str]) -> dict[str, str]:
+    """
+    If a dict of settings is passed, all values are filled. Keys are left alone.
+    """
+
+
+def fill_variables(setting: str | dict, variables: dict[re.Pattern, str]) -> str | dict[str, str] | list[str]:
+    """
+    Fill in $variables in a dynamic setting. Also load $VARIABLES from .env
+    E.g. "$in_app/path/to/${APPNAME}/css" + {'in_app': 'apps/cmsx'} + APPNAME=myapp -> 'apps/cmsx/path/to/myapp/css'
+    """
+    data = _fill_variables(setting, variables)
+    return _fill_variables_from_dotenv(data)
 
 
 def _regexify_settings(setting_dict: dict[str, typing.Any]) -> dict[re.Pattern, typing.Any]:
@@ -268,8 +308,9 @@ def _handle_files(
     """
     re_settings = _regexify_settings(settings)
 
-    output = _fill_variables(output, re_settings)
-    files = [_fill_variables(f, re_settings) for f in files]
+    output = fill_variables(output, re_settings)
+    files = [fill_variables(f, re_settings) for f in files]
+    settings = fill_variables(settings, re_settings)
 
     if verbose:
         print(
