@@ -15,10 +15,10 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Optional
 
+import dotenv
 import edwh
 import tomlkit
 import yaml
-from dotenv import load_dotenv
 from edwh import improved_task as task
 from invoke import Context
 
@@ -37,6 +37,21 @@ def now():
     except AttributeError:
         # 3.10
         return datetime.utcnow()
+
+
+def load_dotenv_once(_={}):
+    """
+    Parse .env once, since it's stored in `os.environ` after.
+
+    For some reason, `find_dotenv(usecwd=True)` seems to be required for proper .env detection.
+    """
+    if _.get("seen"):
+        return False
+
+    dotenv_path = dotenv.find_dotenv(usecwd=True)
+    dotenv.load_dotenv(dotenv_path)
+    _["seen"] = True
+    return True
 
 
 # prgram is created in __init__
@@ -202,7 +217,7 @@ def _fill_variables_from_dotenv(source: str | list[str] | dict[str, typing.Any] 
     """
     Load ${VARIABLES} from .env and environmnt
     """
-    load_dotenv()
+    load_dotenv_once()
 
     if isinstance(source, str):
         source = replace_placeholders(source)
@@ -809,7 +824,7 @@ def version_exists(db: sqlite3.Connection, filetype: str, version: str):
 
 
 def prompt_changelog(db: sqlite3.Connection, filename: str, filetype: str, version: str):
-    load_dotenv()
+    load_dotenv_once()
 
     query = "SELECT id, changelog FROM bundle_version WHERE filename = ? AND filetype = ? AND version = ?;"
     row = db.execute(query, (filename, filetype, version)).fetchone()
@@ -889,7 +904,7 @@ def publish(
     """
     note: this does NOT work with multiple configurations in one yaml yet!!
     """
-    load_dotenv()
+    load_dotenv_once()
     db = setup_db(c, config)
     previous = get_latest_version(db, "js")
 
