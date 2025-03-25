@@ -2,6 +2,15 @@
 
 <!--next-version-placeholder-->
 
+## v2.0.0 (2025-03-25)
+
+### Feature
+
+* **variables:** Also resolve $variables (local and .env) for other settings ([`8362a6b`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/8362a6b654efbb1a094073f7713df92e950a221d))
+
+This may be a breaking change! While it probably won't disrupt most configurations, a major release is issued
+conservatively.
+
 ## v1.3.0 (2024-11-29)
 
 ### Feature
