@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.0 (2025-03-25)
+
+### Feature
+
+* Add `bundle.settings` to see the active settings for a specific config ([`571aa01`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/571aa019731284201b675766cdfc073f3115d4d1))
+
 ## v2.0.0 (2025-03-25)
 
 ### Feature
