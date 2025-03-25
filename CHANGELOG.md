@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.1 (2025-03-25)
+
+### Fix
+
+* Improved `.env` finding ([`f56d761`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/f56d7614c6c7bf6c82d5e6769b4d78e0c7576c11))
+
 ## v2.1.0 (2025-03-25)
 
 ### Feature
