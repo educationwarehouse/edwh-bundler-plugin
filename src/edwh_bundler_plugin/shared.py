@@ -1,8 +1,5 @@
 # code used by both js.py and css.py (and possibly tasks.py)
-from __future__ import annotations
-
 import hashlib
-import os
 import re
 from functools import singledispatch
 from pathlib import Path
@@ -25,7 +22,7 @@ def _extract_contents_cdn(url: str) -> str:
     """
     Download contents from some url
     """
-    resp = requests.get(url, allow_redirects=True, timeout=10)
+    resp = requests.get(url, allow_redirects=True, verify=False, timeout=10)
     resp.raise_for_status()
     return resp.text
 

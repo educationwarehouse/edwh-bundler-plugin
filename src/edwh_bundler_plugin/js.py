@@ -1,6 +1,4 @@
 # methods for converting JS/TS and hyperscript files
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Optional
 
