@@ -1,7 +1,6 @@
 # methods for converting CSS files
 import contextlib
 import os
-import re
 import sys
 import textwrap
 import typing
@@ -9,7 +8,6 @@ import warnings
 
 import sass
 from configuraptor import load_data
-from dotenv import load_dotenv
 from termcolor import cprint
 
 from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local
@@ -106,6 +104,8 @@ def load_css_contents(file: str, cache: bool = True):
 
 
 def extract_contents_for_css(file: dict | str, settings: dict, cache=True, minify=True, verbose=False) -> str:
+    os.environ["SSL_VERIFY"] = "0"
+
     variables = load_data(settings.get("scss_variables", {}))
     scss = False
     scope = None
