@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.2 (2025-03-27)
+
+### Fix
+
+* Don't check ssl when doing requests, (don't crash just warn) ([`72fbf30`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/72fbf30f425f6253f17324c569a4a9cc032b66d6))
+
 ## v2.1.1 (2025-03-25)
 
 ### Fix
