@@ -102,9 +102,17 @@ def load_css_contents(file: str, cache: bool = True):
             f"If you want to add inline code, add a comment at the top of the block."
         )
 
+def ignore_ssl():
+    """
+    Ignore invalid SSL certificates (useful for local development) including warnings.
+    """
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    os.environ["SSL_VERIFY"] = "0"
+
 
 def extract_contents_for_css(file: dict | str, settings: dict, cache=True, minify=True, verbose=False) -> str:
-    os.environ["SSL_VERIFY"] = "0"
+    ignore_ssl()
 
     variables = load_data(settings.get("scss_variables", {}))
     scss = False
