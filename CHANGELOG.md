@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v2.1.4 (2025-04-04)
+
+### Fix
+
+* **scss:** Also hide SSL certificate warnings ([`497a56d`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/497a56dc8e46c9ef1d8128d53ebdd40ed07d77c2))
+
 ## v2.1.3 (2025-03-27)
 
 ### Fix
