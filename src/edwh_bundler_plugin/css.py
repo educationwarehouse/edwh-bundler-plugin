@@ -6,7 +6,7 @@ import textwrap
 import typing
 import warnings
 
-import sass
+import sassquatch
 from configuraptor import load_data
 from termcolor import cprint
 
@@ -27,14 +27,9 @@ def as_warning(exception_type: typing.Type[Exception]):
         warnings.warn_explicit(str(e), source=e, lineno=line_number, filename=filename, category=UserWarning)
 
 
-def try_sass_compile(code: str, verbose: bool, **kwargs) -> typing.Optional[str]:
-    try:
-        return sass.compile(string=code, **kwargs)
-    except sass.CompileError as e:
-        if verbose:
-            cprint(str(e), file=sys.stderr, color="red")
-        return None
-
+def try_sass_compile(code: str, verbose: bool, **kwargs: typing.Unpack[sassquatch.SassSettings]) -> typing.Optional[str]:
+    kwargs.setdefault("verbose", verbose)
+    return sassquatch.compile(string=code, **kwargs)
 
 def convert_scss(
     contents: str,
@@ -56,34 +51,35 @@ def convert_scss(
     Returns: CSS String
     """
     path = path or ["."]
+
     insert_variables = insert_variables or {}
 
-    output_style = "compressed" if minify else "nested"
+    output_style = "compressed" if minify else "expanded" # type: typing.Literal["expanded", "compressed"]
 
     # first try: scss
     variables = convert_to_sass_variables(**insert_variables)
 
-    if result := try_sass_compile(variables + contents, verbose, include_paths=path, output_style=output_style):
+    if result := try_sass_compile(variables + contents, verbose, load_path=path, style=output_style):
         return result
 
     # next try: sass
     variables = convert_to_sass_variables(**insert_variables, _language="sass")
 
     if result := try_sass_compile(
-        variables + contents, verbose, indented=True, include_paths=path, output_style=output_style
+        variables + contents, verbose, indented=True, load_path=path, style=output_style
     ):
         return result
 
     # last option: sass with fixed indentation:
     if result := try_sass_compile(
-        variables + textwrap.dedent(contents), verbose, indented=True, include_paths=path, output_style=output_style
+        variables + textwrap.dedent(contents), verbose, indented=True, load_path=path, style=output_style
     ):
         return result
 
     if verbose:
         print(f"{variables=}", file=sys.stderr)
         print(f"{contents=}", file=sys.stderr)
-    raise sass.CompileError("Something went wrong with your styles. Are you sure they have valid scss/sass syntax?")
+    raise sassquatch.CompileError(stderr="Something went wrong with your styles. Are you sure they have valid scss/sass syntax?")
 
 
 def load_css_contents(file: str, cache: bool = True):

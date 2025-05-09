@@ -1,6 +1,6 @@
 import textwrap
 
-import sass
+import sassquatch
 
 from src.edwh_bundler_plugin.css import convert_to_sass_variables
 
@@ -72,13 +72,13 @@ def test_converter():
         """
     )
 
-    css = sass.compile(string=scss_code, output_style="expanded")
+    css = sassquatch.compile(string=scss_code, style="expanded")
 
     print(css)
 
     assert css
     assert "display: none" not in css
 
-    css2 = sass.compile(string=sass_code, output_style="expanded", indented=True)
+    css2 = sassquatch.compile(string=sass_code, style="expanded", indented=True)
 
     assert css == css2
