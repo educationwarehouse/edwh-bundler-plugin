@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.1 (2025-05-19)
+
+### Fix
+
+* Bump to sassquatch 1.0+ ([`4393820`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/4393820b0dacb90efa909d742a39e0ccdeb4f026))
+
+### Documentation
+
+* Replace libsass->dart-sass via sassquatch ([`0f84e48`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/0f84e4860fd3e922410f7b033addade2b3468d6e))
+
 ## v3.0.0 (2025-05-19)
 
 ### Feature
