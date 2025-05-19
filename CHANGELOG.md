@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.0-beta.2 (2025-05-19)
+
+### Fix
+
+* Depend on `sassquatch >= 0.1.4` ([`c8617f7`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/c8617f7f65b8077fce910f913446e00029cbf7e9))
+
 ## v3.0.0-beta.1 (2025-05-19)
 
 ### Feature
