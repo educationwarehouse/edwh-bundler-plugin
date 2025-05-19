@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.0-beta.3 (2025-05-19)
+
+### Fix
+
+* Pass 'quiet' to `sassquatch` unless `verbose` + `ew fmt` ([`1ce0db1`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/1ce0db1f7b0f1e6fb130f25e6c058e7e9922abc6))
+
 ## v3.0.0-beta.2 (2025-05-19)
 
 ### Fix
