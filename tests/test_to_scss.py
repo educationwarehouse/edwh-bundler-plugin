@@ -80,5 +80,9 @@ def test_converter():
     assert "display: none" not in css
 
     css2 = sassquatch.compile(string=sass_code, style="expanded", indented=True)
+    assert "\n" in css2.strip()
 
     assert css == css2
+
+    css_min = sassquatch.compile(string=scss_code, style="compressed")
+    assert "\n" not in css_min.strip()
