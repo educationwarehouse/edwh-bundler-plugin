@@ -27,7 +27,7 @@ dependencies = [
     "edwh >= 0.56.6",
     "tomlkit",
     "python-dotenv",
-    "libsass",
+    "sassquatch >= 0.1.4",
     "rjsmin",
     "dukpy",
     "requests",
