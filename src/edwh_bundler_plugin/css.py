@@ -27,9 +27,13 @@ def as_warning(exception_type: typing.Type[Exception]):
         warnings.warn_explicit(str(e), source=e, lineno=line_number, filename=filename, category=UserWarning)
 
 
-def try_sass_compile(code: str, verbose: bool, **kwargs: typing.Unpack[sassquatch.SassSettings]) -> typing.Optional[str]:
+def try_sass_compile(
+    code: str, verbose: bool, **kwargs: typing.Unpack[sassquatch.SassSettings]
+) -> typing.Optional[str]:
     kwargs.setdefault("verbose", verbose)
+    kwargs.setdefault("quiet", not verbose)
     return sassquatch.compile(string=code, **kwargs)
+
 
 def convert_scss(
     contents: str,
@@ -54,7 +58,7 @@ def convert_scss(
 
     insert_variables = insert_variables or {}
 
-    output_style = "compressed" if minify else "expanded" # type: typing.Literal["expanded", "compressed"]
+    output_style = "compressed" if minify else "expanded"  # type: typing.Literal["expanded", "compressed"]
 
     # first try: scss
     variables = convert_to_sass_variables(**insert_variables)
@@ -66,7 +70,11 @@ def convert_scss(
     variables = convert_to_sass_variables(**insert_variables, _language="sass")
 
     if result := try_sass_compile(
-        variables + contents, verbose, indented=True, load_path=path, style=output_style
+        variables + contents,
+        verbose,
+        indented=True,
+        load_path=path,
+        style=output_style,
     ):
         return result
 
@@ -79,7 +87,9 @@ def convert_scss(
     if verbose:
         print(f"{variables=}", file=sys.stderr)
         print(f"{contents=}", file=sys.stderr)
-    raise sassquatch.CompileError(stderr="Something went wrong with your styles. Are you sure they have valid scss/sass syntax?")
+    raise sassquatch.CompileError(
+        stderr="Something went wrong with your styles. Are you sure they have valid scss/sass syntax?"
+    )
 
 
 def load_css_contents(file: str, cache: bool = True):
@@ -98,11 +108,13 @@ def load_css_contents(file: str, cache: bool = True):
             f"If you want to add inline code, add a comment at the top of the block."
         )
 
+
 def ignore_ssl():
     """
     Ignore invalid SSL certificates (useful for local development) including warnings.
     """
     import urllib3
+
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     os.environ["SSL_VERIFY"] = "0"
 
