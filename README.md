@@ -51,8 +51,9 @@ as `node_modules` yet.
 
 ### CSS
 
-(S)CSS can also be bundled (naively) and minified (using [libsass](https://pypi.org/project/libsass/)) and can also be
-loaded from either remote or local files.
+(S)CSS can also be bundled (naively) and minified 
+(using [sassquatch](https://pypi.org/project/sassquatch/)/[dart-sass](https://sass-lang.com/dart-sass/)) 
+and can also be loaded from either remote or local files.
 A scope can also be defined and using sass all styles in the file will be prefixed with the provided selector.
 
 ### Configuration
