@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.0.0-beta.1 (2025-05-19)
+
+### Feature
+
+* Use sassquatch (based on dart-sass) instead of libsass so we can use `@use` ([`709304c`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/709304ccf54d21ad4904dfa88cd0729b71882e2c))
+
 ## v2.1.4 (2025-04-04)
 
 ### Fix
