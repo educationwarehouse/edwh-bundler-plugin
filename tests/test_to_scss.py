@@ -2,11 +2,14 @@ import textwrap
 
 import sassquatch
 
-from src.edwh_bundler_plugin.css import convert_to_sass_variables
+from src.edwh_bundler_plugin.css import convert_to_css_variables
 
 
 def test_converter():
-    scss_code = convert_to_sass_variables(
+    assert convert_to_css_variables("css") == ""
+
+    css_code = convert_to_css_variables(
+        "css",
         font=["Arial", "sans-serif"],
         color="#8504bd",
         font_size=16,
@@ -18,7 +21,12 @@ def test_converter():
         },
     )
 
-    sass_code = convert_to_sass_variables(
+    assert ":root {" in css_code
+    assert "--color: #8504bd" in css_code
+    assert "mapping" not in css_code
+
+    scss_code = convert_to_css_variables(
+        "scss",
         font=["Arial", "sans-serif"],
         color="#8504bd",
         font_size=16,
@@ -28,7 +36,19 @@ def test_converter():
             "primary-color": "rgba(255, 0, 0, 0.5)",
             "secondary-color": "hsl(121, 100%, 50%)",
         },
-        _language="sass",
+    )
+
+    sass_code = convert_to_css_variables(
+        "sass",
+        font=["Arial", "sans-serif"],
+        color="#8504bd",
+        font_size=16,
+        nothing=None,
+        maybe=False,
+        mapping={
+            "primary-color": "rgba(255, 0, 0, 0.5)",
+            "secondary-color": "hsl(121, 100%, 50%)",
+        },
     )
 
     scss_code += """

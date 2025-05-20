@@ -1,5 +1,6 @@
 # code used by both js.py and css.py (and possibly tasks.py)
 import hashlib
+import os
 import re
 from functools import singledispatch
 from pathlib import Path
@@ -44,6 +45,16 @@ def setup_cdn_cache() -> Path:
         gitignore.write_text("*\n")
 
     return CACHE_DIR
+
+
+def ignore_ssl():
+    """
+    Ignore invalid SSL certificates (useful for local development) including warnings.
+    """
+    import urllib3
+
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    os.environ["SSL_VERIFY"] = "0"
 
 
 def extract_contents_cdn(url: str, cache=True) -> str:

@@ -10,7 +10,7 @@ import sassquatch
 from configuraptor import load_data
 from termcolor import cprint
 
-from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local
+from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local, ignore_ssl
 
 SCSS_TYPES = None | bool | int | float | str | list["SCSS_TYPES"] | dict[str, "SCSS_TYPES"]
 
@@ -40,8 +40,6 @@ def try_sass_compile(
         return None
 
 
-
-
 def convert_scss(
     contents: str,
     minify: bool = True,
@@ -68,13 +66,13 @@ def convert_scss(
     output_style = "compressed" if minify else "expanded"  # type: typing.Literal["expanded", "compressed"]
 
     # first try: scss
-    variables = convert_to_sass_variables(**insert_variables)
+    variables = convert_to_css_variables("scss", **insert_variables)
 
     if result := try_sass_compile(variables + contents, verbose, load_path=path, style=output_style):
         return result
 
     # next try: sass
-    variables = convert_to_sass_variables(**insert_variables, _language="sass")
+    variables = convert_to_css_variables("sass", **insert_variables)
 
     if result := try_sass_compile(
         variables + contents,
@@ -116,14 +114,14 @@ def load_css_contents(file: str, cache: bool = True):
         )
 
 
-def ignore_ssl():
-    """
-    Ignore invalid SSL certificates (useful for local development) including warnings.
-    """
-    import urllib3
+def prepend_global_css_variables(combined: str, settings: dict) -> str:
+    # postprocess step for css
+    minify = settings.get("minify", 0)
+    variables = load_data(settings.get("scss_variables", {}))
+    css_root_variables = convert_to_css_variables("css", **variables)
+    css_root_variables = _del_whitespace(css_root_variables) if minify else css_root_variables
 
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    os.environ["SSL_VERIFY"] = "0"
+    return f"{css_root_variables}\n{combined}" if css_root_variables else combined
 
 
 def extract_contents_for_css(file: dict | str, settings: dict, cache=True, minify=True, verbose=False) -> str:
@@ -198,14 +196,24 @@ def convert_scss_value(value: SCSS_TYPES, _level: int = 0) -> str:
             raise NotImplementedError(f"Unsupported type {type(value)}")
 
 
-def convert_to_sass_variables(_language="scss", **variables) -> str:
+def convert_to_css_variables(_language: typing.Literal["scss", "sass", "css"], **variables) -> str:
     code = ""
+    eol = "\n" if _language == "sass" else ";\n"
 
-    eol = ";\n" if _language == "scss" else "\n"
+    if _language == "css":
+        for key, value in variables.items():
+            if isinstance(value, dict):
+                # unsupported in css:
+                continue
 
-    for key, value in variables.items():
-        key = convert_scss_key(key)
-        value = convert_scss_value(value)
-        code += f"{key}: {value}{eol}"
+            css_key = "--" + key.replace("_", "-")
+            css_value = convert_scss_value(value)
+            code += f" {css_key}: {css_value}{eol}"
+        return ":root {\n%s}" % code if code else ""
+    else:
+        for key, value in variables.items():
+            key = convert_scss_key(key)
+            value = convert_scss_value(value)
+            code += f"{key}: {value}{eol}"
 
     return code

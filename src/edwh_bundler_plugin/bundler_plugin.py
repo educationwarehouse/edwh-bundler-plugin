@@ -17,10 +17,11 @@ import dotenv
 import edwh
 import tomlkit
 import yaml
+from configuraptor import load_data
 from edwh import improved_task as task
 from invoke import Context
 
-from .css import extract_contents_for_css
+from .css import extract_contents_for_css, prepend_global_css_variables
 from .js import extract_contents_for_js
 from .shared import truthy
 
@@ -306,6 +307,7 @@ def _handle_files(
     minify: bool,
     store_hash: bool,
     settings: dict,
+    postprocess: typing.Callable[[str, dict], str] = None,
 ):
     """
     Execute 'callback' (js or css specific) on all 'files'
@@ -351,24 +353,29 @@ def _handle_files(
         output_dir.mkdir(parents=True, exist_ok=True)
         output = output_dir / output_filename
 
-    with start_buffer(output) as bufferf:
-        for inf in files:
-            if not inf:
-                # empty - skip
-                continue
+    final = ""
 
-            if not minify:
-                src = str(inf).replace("/*", "//").replace("*/", "")
-                bufferf.write(f"/* SOURCE: {src} */\n")
+    for inf in files:
+        if not inf:
+            # empty - skip
+            continue
 
-            res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
+        if not minify:
+            src = str(inf).replace("/*", "//").replace("*/", "")
+            final += f"/* SOURCE: {src} */\n"
 
-            bufferf.write(res.strip() + "\n")
-            if verbose:
-                print(f"Handled {inf}", file=sys.stderr)
+        res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
 
-    if not isinstance(output, io.IOBase):
-        os.rename(bufferf.name, output)
+        final += res.strip() + "\n"
+        if verbose:
+            print(f"Handled {inf}", file=sys.stderr)
+
+    if postprocess:
+        final = postprocess(final, settings)
+
+    with start_buffer(output) as outputf:
+        outputf.write(final)
+
     if verbose:
         print(f"Written final bundle to {output}", file=sys.stderr)
 
@@ -542,6 +549,7 @@ def build_css(
             store_hash=cli_or_config(save_hash, settings, "hash"),
             minify=cli_or_config(minify, settings, "minify"),
             settings=settings,
+            postprocess=prepend_global_css_variables,
         )
 
     return result
