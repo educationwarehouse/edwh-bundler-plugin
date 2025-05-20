@@ -32,7 +32,14 @@ def try_sass_compile(
 ) -> typing.Optional[str]:
     kwargs.setdefault("verbose", verbose)
     kwargs.setdefault("quiet", not verbose)
-    return sassquatch.compile(string=code, **kwargs)
+    try:
+        return sassquatch.compile(string=code, **kwargs)
+    except sassquatch.CompileError as e:
+        if verbose:
+            cprint(str(e), file=sys.stderr, color="red")
+        return None
+
+
 
 
 def convert_scss(

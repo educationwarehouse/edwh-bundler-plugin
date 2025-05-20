@@ -363,7 +363,7 @@ def _handle_files(
 
             res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
 
-            bufferf.write(res + "\n")
+            bufferf.write(res.strip() + "\n")
             if verbose:
                 print(f"Handled {inf}", file=sys.stderr)
 
