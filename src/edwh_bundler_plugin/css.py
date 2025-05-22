@@ -93,11 +93,12 @@ def convert_scss(
         print(f"{variables=}", file=sys.stderr)
         print(f"{contents=}", file=sys.stderr)
     raise sassquatch.CompileError(
-        stderr="Something went wrong with your styles. Are you sure they have valid scss/sass syntax?"
+        stderr="Something went wrong with your styles. Are you sure they have valid scss/sass syntax? Tip: run with --verbose to see sassquatch output and variables."
     )
 
 
 def load_css_contents(file: str, cache: bool = True):
+    # noinspection HttpUrlsUsage
     if file.startswith(("http://", "https://")):
         # download
         return extract_contents_cdn(file, cache)

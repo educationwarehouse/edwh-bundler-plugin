@@ -32,7 +32,7 @@ dependencies = [
     "dukpy",
     "requests",
     "pyyaml",
-    "configuraptor>=1.27.2",
+    "configuraptor >= 1.28.0",
 ]
 
 [project.optional-dependencies]
