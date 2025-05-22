@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v3.1.1 (2025-05-22)
+
+### Fix
+
+* Better errors ([#3](https://github.com/educationwarehouse/edwh-bundler-plugin/issues/3)) ([`ebffc54`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/ebffc547eccf4cca837cb4273f1b64fbdd977c7d))
+
 ## v3.0.1 (2025-05-19)
 
 ### Fix
