@@ -7,21 +7,13 @@ import typing
 import warnings
 
 import sassquatch
-from configuraptor import load_data as try_load_data
-from configuraptor.core import T_data
-from configuraptor.errors import FailedToLoad
+from configuraptor import load_data
+from termcolor import cprint
 
 from .shared import _del_whitespace, extract_contents_cdn, extract_contents_local, ignore_ssl
 
 SCSS_TYPES = None | bool | int | float | str | list["SCSS_TYPES"] | dict[str, "SCSS_TYPES"]
 
-def load_data(data: T_data, **kwargs) -> dict[str, typing.Any]:
-    try:
-        kwargs["strict"] = True
-        return try_load_data(data, **kwargs)
-    except FailedToLoad as e:
-        print('ja hallo', e, e.__cause__)
-        return {}
 
 @contextlib.contextmanager
 def as_warning(exception_type: typing.Type[Exception]):
@@ -101,11 +93,12 @@ def convert_scss(
         print(f"{variables=}", file=sys.stderr)
         print(f"{contents=}", file=sys.stderr)
     raise sassquatch.CompileError(
-        stderr="Something went wrong with your styles. Are you sure they have valid scss/sass syntax?"
+        stderr="Something went wrong with your styles. Are you sure they have valid scss/sass syntax? Tip: run with --verbose to see sassquatch output and variables."
     )
 
 
 def load_css_contents(file: str, cache: bool = True):
+    # noinspection HttpUrlsUsage
     if file.startswith(("http://", "https://")):
         # download
         return extract_contents_cdn(file, cache)
