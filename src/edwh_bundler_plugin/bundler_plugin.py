@@ -1,11 +1,9 @@
-import contextlib
 import datetime as dt
 import io
 import os
 import re
 import sqlite3
 import sys
-import tempfile
 import typing
 import warnings
 from contextlib import contextmanager
@@ -19,6 +17,7 @@ import dotenv
 import edwh
 import tomlkit
 import yaml
+from configuraptor import load_data
 from edwh import improved_task as task
 from invoke import Context
 
@@ -62,14 +61,12 @@ DEFAULT_INPUT_LTS = "bundle-lts.yaml"
 DEFAULT_OUTPUT_JS = "bundle.js"
 DEFAULT_OUTPUT_CSS = "bundle.css"
 
-# TMP = Path("/tmp")
+TMP = Path("/tmp")
 
-# TEMP_OUTPUT_DIR = TMP / "bundle-build"
+TEMP_OUTPUT_DIR = TMP / "bundle-build"
 TEMP_OUTPUT = ".bundle_tmp"
-# DEFAULT_ASSETS_DB = TMP / "lts_assets.db"
+DEFAULT_ASSETS_DB = TMP / "lts_assets.db"
 DEFAULT_ASSETS_SQL = "py4web/apps/lts/databases/lts_assets.sql"
-
-# fixme: TMP should be used via tempfile.NamedTemporaryDirectory, not this manual implementation
 
 
 def convert_data(data: dict[str, typing.Any] | list[typing.Any] | typing.Any):
@@ -345,50 +342,51 @@ def _handle_files(
             print("No files supplied, quitting", file=sys.stderr)
         return
 
-    with tempfile.TemporaryDirectory(prefix="edwh-bundle-build") as tmp_dir:
-        tmp_dir_path = Path(tmp_dir)
+    # if output starts with sqlite:// write to tmp and save to db later
+    if output.startswith("sqlite://"):
+        # database_path = output.split("sqlite://", 1)[1]
+        output_filename = output.split("/")[-1]
+        ts = datetime.now()
+        ts = str(ts).replace(" ", "_")
 
-        # if output starts with sqlite:// write to tmp and save to db later
-        if output.startswith("sqlite://"):
-            # database_path = output.split("sqlite://", 1)[1]
-            output_filename = output.split("/")[-1]
+        output_dir = TEMP_OUTPUT_DIR / ts
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output = output_dir / output_filename
 
-            output = tmp_dir_path / output_filename
+    final = ""
 
-        final = ""
+    for inf in files:
+        if not inf:
+            # empty - skip
+            continue
 
-        for inf in files:
-            if not inf:
-                # empty - skip
-                continue
+        if not minify:
+            src = str(inf).replace("/*", "//").replace("*/", "")
+            final += f"/* SOURCE: {src} */\n"
 
-            if not minify:
-                src = str(inf).replace("/*", "//").replace("*/", "")
-                final += f"/* SOURCE: {src} */\n"
+        res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
 
-            res = callback(inf, settings, cache=use_cache, minify=minify, verbose=verbose)
-
-            final += res.strip() + "\n"
-            if verbose:
-                print(f"Handled {inf}", file=sys.stderr)
-
-        if postprocess:
-            final = postprocess(final, settings)
-
-        with start_buffer(output) as outputf:
-            outputf.write(final)
-
+        final += res.strip() + "\n"
         if verbose:
-            print(f"Written final bundle to {output}", file=sys.stderr)
+            print(f"Handled {inf}", file=sys.stderr)
 
-        if store_hash:
-            hash_file = store_file_hash(output)
+    if postprocess:
+        final = postprocess(final, settings)
 
-            print((output, hash_file))
-            return output, hash_file
+    with start_buffer(output) as outputf:
+        outputf.write(final)
 
-        print(output)
-        return output
+    if verbose:
+        print(f"Written final bundle to {output}", file=sys.stderr)
+
+    if store_hash:
+        hash_file = store_file_hash(output)
+
+        print((output, hash_file))
+        return output, hash_file
+
+    print(output)
+    return output
 
 
 @task(iterable=["files"])
@@ -770,22 +768,18 @@ def config_setting(key, default=None, config=None, config_path=None, config_name
     return fill_variables(var, re_settings)
 
 
-@contextlib.contextmanager
-def db_connection(c: Context, config_path=DEFAULT_INPUT_LTS):
+def setup_db(c: Context, config_path=DEFAULT_INPUT_LTS) -> sqlite3.Connection:
     """
     note: this does NOT work with multiple configurations in one yaml yet!!
     """
-    # context manager replacement of `setup_db`
+    db_path = config_setting("output_db", DEFAULT_ASSETS_DB, config_path=config_path)
+    sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL, config_path=config_path)
 
-    with tempfile.NamedTemporaryFile(prefix="edwh-bundle-build", suffix=".sqlite") as default_sqlite:
-        db_path = config_setting("output_db", default_sqlite, config_path=config_path)
-        sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL, config_path=config_path)
-
-        assert_file_exists(c, db_path, sql_path)
-        assert_chmod_777(c, [db_path, sql_path])
-        con = sqlite3.connect(db_path)
-        con.row_factory = dict_factory
-        yield con
+    assert_file_exists(c, db_path, sql_path)
+    assert_chmod_777(c, [db_path, sql_path])
+    con = sqlite3.connect(db_path)
+    con.row_factory = dict_factory
+    return con
 
 
 def get_latest_version(db: sqlite3.Connection, filetype: str = None) -> dict:
@@ -805,11 +799,11 @@ def _update_assets_sql(c: Context, config: str = None):
     ... todo docs ...
     Should be done after each db.commit()
     """
-    with tempfile.NamedTemporaryFile(prefix="edwh-bundle-build", suffix=".sqlite") as default_sqlite:
-        db_path = config_setting("output_db", default_sqlite, config_path=config)
-        sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL, config_path=config)
+    # for line in db.iterdump():
+    db_path = config_setting("output_db", DEFAULT_ASSETS_DB, config_path=config)
+    sql_path = config_setting("output_sql", DEFAULT_ASSETS_SQL, config_path=config)
 
-        c.run(f"sqlite3 {db_path} .dump > {sql_path}", hide=True)
+    c.run(f"sqlite3 {db_path} .dump > {sql_path}", hide=True)
 
 
 @task()
@@ -857,8 +851,8 @@ def show_changelog_url(c, filename, filetype, version, config=DEFAULT_INPUT_LTS)
     """
     note: this does NOT work with multiple configurations in one yaml yet!!
     """
-    with db_connection(c, config) as db:
-        prompt_changelog(db, filename, filetype, version)
+    db = setup_db(c, config)
+    prompt_changelog(db, filename, filetype, version)
 
 
 def confirm(prompt: str, force=False) -> bool:
@@ -917,85 +911,87 @@ def publish(
     note: this does NOT work with multiple configurations in one yaml yet!!
     """
     load_dotenv_once()
-    with db_connection(c, config) as db:
-        previous = get_latest_version(db, "js")
+    db = setup_db(c, config)
+    previous = get_latest_version(db, "js")
 
-        major, minor, patch, version = _decide_new_version(major, minor, patch, previous, version)
+    TEMP_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-        if js and version_exists(db, "js", version):
-            print(f"JS Version {version} already exists!")
-            js = confirm("Are you sure you want to overwrite it? ", force)
+    major, minor, patch, version = _decide_new_version(major, minor, patch, previous, version)
 
-        if css and version_exists(db, "css", version):
-            print(f"CSS Version {version} already exists!")
-            css = confirm("Are you sure you want to overwrite it? ", force)
+    if js and version_exists(db, "js", version):
+        print(f"JS Version {version} already exists!")
+        js = confirm("Are you sure you want to overwrite it? ", force)
 
-        output_js = {}
-        if js:
-            output_js = build_js(c, config=config, version=version, verbose=verbose)
+    if css and version_exists(db, "css", version):
+        print(f"CSS Version {version} already exists!")
+        css = confirm("Are you sure you want to overwrite it? ", force)
 
-        output_css = {}
-        if css:
-            output_css = build_css(c, config=config, version=version, verbose=verbose)
+    output_js = {}
+    if js:
+        output_js = build_js(c, config=config, version=version, verbose=verbose)
 
-        for key, js_file in output_js.items():
-            if isinstance(js_file, tuple):
-                # (file, hash)
-                js_file = js_file[0]
+    output_css = {}
+    if css:
+        output_css = build_css(c, config=config, version=version, verbose=verbose)
 
-            go, file_hash, filename, file_contents = _should_publish(c, force, js_file, previous.get("hash"), "JS")
+    for key, js_file in output_js.items():
+        if isinstance(js_file, tuple):
+            # (file, hash)
+            js_file = js_file[0]
 
-            if go:
-                insert_version(
-                    c,
-                    db,
-                    {
-                        "filetype": "js",
-                        "version": version,
-                        "filename": filename,
-                        "major": major,
-                        "minor": minor,
-                        "patch": patch,
-                        "hash": file_hash,
-                        "created_at": now(),
-                        "changelog": "",
-                        "contents": file_contents,
-                    },
-                    config=config,
-                )
-                print(f"{filename} (JS) version {version} published.")
-                prompt_changelog(db, filename, "js", version)
+        go, file_hash, filename, file_contents = _should_publish(c, force, js_file, previous.get("hash"), "JS")
 
-        for key, css_file in output_css.items():
-            if isinstance(css_file, tuple):
-                # (file, hash)
-                css_file = css_file[0]
-
-            previous_css = get_latest_version(db, "css")
-            go, file_hash, filename, file_contents = _should_publish(
-                c, force, css_file, previous_css.get("hash"), "CSS"
+        if go:
+            insert_version(
+                c,
+                db,
+                {
+                    "filetype": "js",
+                    "version": version,
+                    "filename": filename,
+                    "major": major,
+                    "minor": minor,
+                    "patch": patch,
+                    "hash": file_hash,
+                    "created_at": now(),
+                    "changelog": "",
+                    "contents": file_contents,
+                },
+                config=config,
             )
+            print(f"{filename} (JS) version {version} published.")
+            prompt_changelog(db, filename, "js", version)
 
-            if go:
-                insert_version(
-                    c,
-                    db,
-                    {
-                        "filetype": "css",
-                        "version": version,
-                        "filename": filename,
-                        "major": major,
-                        "minor": minor,
-                        "patch": patch,
-                        "hash": file_hash,
-                        "created_at": now(),
-                        "changelog": "",
-                        "contents": file_contents,
-                    },
-                    config=config,
-                )
-                print(f"{filename} (CSS) version {version} published.")
-                prompt_changelog(db, filename, "css", version)
+    for key, css_file in output_css.items():
+        if isinstance(css_file, tuple):
+            # (file, hash)
+            css_file = css_file[0]
+
+        previous_css = get_latest_version(db, "css")
+        go, file_hash, filename, file_contents = _should_publish(c, force, css_file, previous_css.get("hash"), "CSS")
+
+        if go:
+            insert_version(
+                c,
+                db,
+                {
+                    "filetype": "css",
+                    "version": version,
+                    "filename": filename,
+                    "major": major,
+                    "minor": minor,
+                    "patch": patch,
+                    "hash": file_hash,
+                    "created_at": now(),
+                    "changelog": "",
+                    "contents": file_contents,
+                },
+                config=config,
+            )
+            print(f"{filename} (CSS) version {version} published.")
+            prompt_changelog(db, filename, "css", version)
+
+    rmtree(TEMP_OUTPUT_DIR)
 
 
 def _should_publish(
@@ -1023,11 +1019,11 @@ def list_versions(c, config=DEFAULT_INPUT_LTS):
     """
     note: this does NOT work with multiple configurations in one yaml yet!!
     """
-    with db_connection(c, config) as db:
-        for row in db.execute(
-            "SELECT filetype, version FROM bundle_version ORDER BY major DESC, minor DESC, patch DESC"
-        ).fetchall():
-            print(row)
+    db = setup_db(c, config)
+    for row in db.execute(
+        "SELECT filetype, version FROM bundle_version ORDER BY major DESC, minor DESC, patch DESC"
+    ).fetchall():
+        print(row)
 
 
 @task()
@@ -1035,18 +1031,19 @@ def reset(c, config=DEFAULT_INPUT_LTS):
     """
     note: this does NOT work with multiple configurations in one yaml yet!!
     """
+    db = setup_db(c, config)
+
     if not confirm("Are you sure you want to reset the versions database? [yN]"):
         print("Wise.")
         return
 
-    with db_connection(c, config) as db:
-        # noinspection SqlWithoutWhere
-        # ^ that's the whole point of 'reset'.
-        db.execute("DELETE FROM bundle_version;")
-        db.commit()
-        _update_assets_sql(c, config)
+    # noinspection SqlWithoutWhere
+    # ^ that's the whole point of 'reset'.
+    db.execute("DELETE FROM bundle_version;")
+    db.commit()
+    _update_assets_sql(c, config)
 
-        assert db.execute("SELECT COUNT(*) AS c FROM bundle_version;").fetchone()["c"] == 0
+    assert db.execute("SELECT COUNT(*) AS c FROM bundle_version;").fetchone()["c"] == 0
 
 
 @task()
