@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v4.0.1 (2025-11-13)
+
+### BREAKING CHANGE!
+
+*  replace hardcoded /tmp paths with tempfile directories
+    * This ensures cleanup and isolation between commands, instead of databases being reused causing issues after rolling back the bundle yaml or sql file
+    * Removes `setup_db` in favor of context manager `db_connection`
+* Only apply temp file logic to the temporary sqlite database, the pathing for temporary .js and .css files was already working (and broke with the 4.0.0 change) ([`21c5943`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/21c59430abdcf67b58ee261e519c4beaeded1896))
+
+(4.0.0 was yanked due to this)
+
 ## v3.1.1 (2025-05-22)
 
 ### Fix
