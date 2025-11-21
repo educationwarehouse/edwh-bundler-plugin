@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v4.0.2 (2025-11-21)
+
+### Fix
+
+* Allow dynamic 'CDN_CACHE' location via env ([`658e120`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/658e12017ae9652ca8a2d99f4521b6ea2e643514))
+
 ## v4.0.1 (2025-11-13)
 
 ### BREAKING CHANGE!
