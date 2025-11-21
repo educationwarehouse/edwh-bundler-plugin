@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v4.0.3 (2025-11-21)
+
+### Fix
+
+* `replace_placeholders` regex implemenation replaced with more complete `expandvars` library so features like defaults (${VAR:-default}) work as well ([`2348b0d`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/2348b0df529504d0015b207ef7e87981c666dd87))
+
 ## v4.0.2 (2025-11-21)
 
 ### Fix
