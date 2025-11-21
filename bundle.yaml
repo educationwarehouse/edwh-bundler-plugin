@@ -28,5 +28,5 @@ config:
   hash: 1
   scss-variables:
     - $src/variables.toml
-    - https://${HOSTINGDOMAIN}/api/styles.json?secret=${AUTH_TOKEN}
+    - ${SCHEMA:-https}://${HOSTINGDOMAIN}/api/styles.json?secret=${AUTH_TOKEN}
 

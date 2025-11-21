@@ -33,6 +33,7 @@ dependencies = [
     "requests",
     "pyyaml",
     "configuraptor >= 1.28.0",
+    "expandvars < 2",
 ]
 
 [project.optional-dependencies]

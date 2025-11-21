@@ -18,6 +18,7 @@ import edwh
 import tomlkit
 import yaml
 from edwh import improved_task as task
+from expandvars import expandvars
 from invoke import Context
 
 from .css import extract_contents_for_css, prepend_global_css_variables
@@ -204,11 +205,10 @@ DOTENV_RE = re.compile(r"\${(.*?)}")
 
 
 def replace_placeholders(raw_string: str) -> str:
-    def replace(match):
-        key = match.group(1)
-        return os.getenv(key, f"${{{key}}}")
-
-    return DOTENV_RE.sub(replace, raw_string)
+    """
+    Original custom logic replaced with https://pypi.org/project/expandvars/
+    """
+    return expandvars(raw_string)
 
 
 def _fill_variables_from_dotenv(source: str | list[str] | dict[str, typing.Any] | None) -> dict[str, typing.Any]:
