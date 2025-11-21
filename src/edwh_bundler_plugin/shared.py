@@ -7,7 +7,7 @@ from pathlib import Path
 
 import requests
 
-_CACHE_DIR = ".cdn_cache"
+_CACHE_DIR = os.getenv("CDN_CACHE", ".cdn_cache")
 CACHE_DIR = Path(_CACHE_DIR)
 
 # https://stackoverflow.com/questions/70064025/regex-pattern-to-match-comments-but-not-urls
