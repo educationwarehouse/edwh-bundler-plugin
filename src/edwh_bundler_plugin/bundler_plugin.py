@@ -203,12 +203,19 @@ def cli_or_config(
 
 DOTENV_RE = re.compile(r"\${(.*?)}")
 
+# Match ${UPPERCASE...} - starts with uppercase or underscore
+ENV_VAR_RE = re.compile(r"\$\{[A-Z_][A-Z0-9_]*(?:[^}]*)?}|\$[A-Z_][A-Z0-9_]*\b")
+
 
 def replace_placeholders(raw_string: str) -> str:
-    """
-    Original custom logic replaced with https://pypi.org/project/expandvars/
-    """
-    return expandvars(raw_string)
+    """Replace only UPPERCASE ${VAR...} patterns using expandvars."""
+
+    def replacer(match: re.Match[str]) -> str:
+        placeholder = match.group(0)
+        # Pass only this placeholder to expandvars
+        return expandvars(placeholder)
+
+    return ENV_VAR_RE.sub(replacer, raw_string)
 
 
 def _fill_variables_from_dotenv(source: str | list[str] | dict[str, typing.Any] | None) -> dict[str, typing.Any]:
