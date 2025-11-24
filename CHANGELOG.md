@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v4.0.4 (2025-11-24)
+
+### Fix
+
+* `replace_placeholders` should only replace uppercase variables, not lowercase (probably js) ones! ([`e4a2864`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/e4a2864d3fafc3f3964a911cb4095920380491a3))
+
 ## v4.0.3 (2025-11-21)
 
 ### Fix
