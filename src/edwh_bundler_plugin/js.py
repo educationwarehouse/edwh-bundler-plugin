@@ -136,7 +136,7 @@ def _append_to_dom(html: str) -> str:
     Append some html fragment at the end of the page
     """
     html = html.replace("`", "\\`")
-    return f"""document.body.innerHTML += `{html}`"""
+    return f"""document.body.insertAdjacentHTML("beforeend", `{html}`)"""
 
 
 def _append_to_head(css: str) -> str:
@@ -144,7 +144,7 @@ def _append_to_head(css: str) -> str:
     Append some CSS fragment at the end of the head of the page
     """
     css = css.replace("\\", "\\\\").replace("`", "\\`").replace("$", "\\$").replace("{", "\\{")
-    return f"document.head.innerHTML += `<style>{css}</style>`"
+    return f"""document.head.insertAdjacentHTML("beforeend", `<style>{css}</style>`)"""
 
 
 def hsmin(contents: str) -> str:
