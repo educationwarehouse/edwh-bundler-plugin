@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v4.0.5 (2026-01-12)
+
+### Fix
+
+* Replace `innerHTML +=` with proper `insertAdjacentHTML` which works better with other dynamic elements (such as lvm vue) and existing event listeners ([`0a28161`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/0a2816162c0341cb461a79013a9f01767b34da4b))
+
 ## v4.0.4 (2025-11-24)
 
 ### Fix
