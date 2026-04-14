@@ -45,7 +45,7 @@ comments and newlines).
 These JS and _hs files can be fetched from a remote URL or loaded from a file path.
 CSS files can be also included in the bundle, and will be inlined as `<style>`s in the page's head.
 The same goes for HTML files, which will be appended to the end of the `<body>` (useful for `<template>`s).
-Typescript files can now also be bundled, using [dukpy](https://pypi.org/project/dukpy/).
+Typescript files can now also be bundled, using [quickjs](https://pypi.org/project/quickjs/).
 Basic imports should work thanks to a custom resolver, but this hasn't been tested with anything complex such
 as `node_modules` yet.
 
