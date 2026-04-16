@@ -29,7 +29,7 @@ dependencies = [
     "python-dotenv",
     "sassquatch >= 1.0.1",
     "rjsmin",
-    "quickjs",
+    "quickjs-ng",
     "requests",
     "pyyaml",
     "configuraptor >= 1.28.0",
