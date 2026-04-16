@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v5.0.0 (2026-04-14)
+
+### Breaking Change
+
+* Switched typescript compiler from dukpy to QuickJS for ES2020+ support
+
 ## v4.0.5 (2026-01-12)
 
 ### Fix

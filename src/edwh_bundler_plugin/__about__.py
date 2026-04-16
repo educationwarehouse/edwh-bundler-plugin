@@ -1,4 +1,4 @@
 # SPDX-FileCopyrightText: 2023-present Remco Boerma <remco.b@educationwarehouse.nl>
 #
 # SPDX-License-Identifier: MIT
-__version__ = "4.0.5"
+__version__ = "5.0.0"
