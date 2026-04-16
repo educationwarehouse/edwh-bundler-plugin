@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v5.0.1 (2026-04-16)
+
+### Fix
+
+* Swap out archived quickjs with better maintained [quickjs-ng](https://github.com/genotrance/quickjs-ng) ([`9deb315`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/9deb31584346e59783eddeb91b13be7d5c16bea3))
+
 ## v5.0.0 (2026-04-14)
 
 ### Breaking Change
