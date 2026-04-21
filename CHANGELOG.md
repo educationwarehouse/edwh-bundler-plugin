@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v6.0.1 (2026-04-21)
+
+### Fix
+
+* Re-export major functions from edwarp in __init__ ([`4706c8f`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/4706c8f4474b8facfb233275aed9087c3c52098c))
+
 ## v6.0.0 (2026-04-21)
 
 ### Feature
