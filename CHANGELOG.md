@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v6.0.0 (2026-04-21)
+
+### Feature
+
+* **core:** Extract core functionality into standalone 'edwarp' ([`aa9f563`](https://github.com/educationwarehouse/edwh-bundler-plugin/commit/aa9f5639222f5c2ce718e91f78eb469f4552b7c6))
+
 ## v5.0.1 (2026-04-16)
 
 ### Fix
