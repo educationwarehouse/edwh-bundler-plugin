@@ -2,10 +2,9 @@
 #
 # SPDX-License-Identifier: MIT
 
+from edwarp import extract_contents_for_css, extract_contents_for_js, JIT
+
 from .bundler_plugin import build, build_css, build_js, bundle_css, bundle_js
-from .css import extract_contents_for_css
-from .js import extract_contents_for_js
-from .lazy import JIT
 
 __all__ = [
     "build",
