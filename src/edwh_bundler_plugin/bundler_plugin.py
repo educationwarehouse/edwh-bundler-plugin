@@ -21,21 +21,13 @@ from edwh import improved_task as task
 from expandvars import expandvars
 from invoke import Context
 
-from .css import extract_contents_for_css, prepend_global_css_variables
-from .js import extract_contents_for_js
-from .shared import truthy
-
+from edwarp import truthy, extract_contents_for_js, extract_contents_for_css, prepend_global_css_variables
 
 def now():
     """
     Backwards and forwards compatible way to get the current datetime in UTC.
     """
-    try:
-        # 3.12
-        return datetime.now(dt.UTC)
-    except AttributeError:
-        # 3.10
-        return datetime.utcnow()
+    return datetime.now(dt.UTC)
 
 
 def load_dotenv_once(_={}):

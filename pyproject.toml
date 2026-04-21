@@ -20,20 +20,15 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+
 dependencies = [
-    "edwh >= 0.56.6",
-    "tomlkit",
-    "python-dotenv",
-    "sassquatch >= 1.0.1",
-    "rjsmin",
-    "quickjs-ng",
-    "requests",
-    "pyyaml",
-    "configuraptor >= 1.28.0",
-    "expandvars < 2",
+    "edwh >= 1.8.0",
+    "edwarp >= 0.1.0",
 ]
 
 [project.optional-dependencies]
