@@ -4,7 +4,6 @@ build-backend = "hatchling.build"
 
 [project]
 name = "edwh-bundler-plugin"
-dynamic = ["version"]
 description = 'Python-only static file (js, css) bundler for `edwh`'
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,11 +29,11 @@ dependencies = [
     "edwh >= 1.8.0",
     "edwarp >= 0.2.0",
 ]
+version = "6.0.1"
 
 [project.optional-dependencies]
 dev = [
     "hatch",
-    "python-semantic-release < 8",
     # "black",
     "pytest",
 ]
@@ -65,20 +64,53 @@ output_js = "static/js/$filename-$version.js"
 hash = true
 
 
-[tool.hatch.version]
-path = "src/edwh_bundler_plugin/__about__.py"
+[tool.vommit]
+allow_breaking_bang = true
+allow_breaking_footer = true
+prerelease_token = "beta"
+confirm = true
 
-[tool.semantic_release]
+[tool.vommit.git]
+enabled = true
+origin = "origin"
 branch = "master"
-version_variable = "src/edwh_bundler_plugin/__about__.py:__version__"
-change_log = "CHANGELOG.md"
-upload_to_repository = false
-upload_to_release = false
-build_command = "hatch build"
-version_source = "tag"
+on_wrong_branch = "error"
+tag_format = "v{version}"
+commit_format = "{version}"
 
-parser_angular_minor_types = "feat,minor"
-parser_angular_patch_types = "fix,perf,refactor,build,chore,patch"
+[tool.vommit.changelog]
+enabled = true
+file = "CHANGELOG.md"
+include_prereleases = false
+placeholder = "<!--next-version-placeholder-->"
+placeholder_regex = "<auto>"
+entry_title_format = "## v{version} ({date:%Y-%m-%d})"
+
+[tool.vommit.changelog.levels]
+feat = "Feature{s}"
+fix = "Fix{es}"
+break = "Breaking Change{s}"
+docs = "Documentation"
+perf = "Performance"
+
+[tool.vommit.pypi]
+enabled = true
+use_keyring = true
+
+[tool.vommit.commands]
+clean = "rm -rf ./dist"
+build = "hatch build"
+publish = "uv publish"
+post_publish = ""
+
+[tool.vommit.version_bump_map]
+break = "major"
+build = "patch"
+chore = "patch"
+feat = "minor"
+fix = "patch"
+perf = "patch"
+refactor = "patch"
 
 [tool.hatch.envs.default]
 dependencies = [
