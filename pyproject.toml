@@ -28,7 +28,7 @@ classifiers = [
 
 dependencies = [
     "edwh >= 1.8.0",
-    "edwarp >= 0.1.0",
+    "edwarp >= 0.2.0",
 ]
 
 [project.optional-dependencies]

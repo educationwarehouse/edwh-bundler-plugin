@@ -17,11 +17,11 @@ import dotenv
 import edwh
 import tomlkit
 import yaml
+from edwarp import extract_contents_for_css, extract_contents_for_js, prepend_global_css_variables, truthy
 from edwh import improved_task as task
 from expandvars import expandvars
 from invoke import Context
 
-from edwarp import truthy, extract_contents_for_js, extract_contents_for_css, prepend_global_css_variables
 
 def now():
     """
@@ -341,7 +341,7 @@ def _handle_files(
         return
 
     # if output starts with sqlite:// write to tmp and save to db later
-    if output.startswith("sqlite://"):
+    if isinstance(output, str) and output.startswith("sqlite://"):
         # database_path = output.split("sqlite://", 1)[1]
         output_filename = output.split("/")[-1]
         ts = datetime.now()

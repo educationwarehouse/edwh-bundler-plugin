@@ -207,7 +207,8 @@ from edwh_bundler_plugin import extract_contents_for_css
 extract_contents_for_css("https://some.cdn/mystyles.css")  # a {color: red}
 extract_contents_for_js("https://some.cdn/mystyles.css")  # document.head.innerHTML += `<style>a {color: red}</style>`
 extract_contents_for_css(
-    {'file': "https://some.cdn/assets/css/mystyles.css", 'scope': '#mydiv'})  # #mydiv a {color: red}
+    {"file": "https://some.cdn/assets/css/mystyles.css", "scope": "#mydiv"}
+)  # #mydiv a {color: red}
 
 # bundling multiple files
 from edwh_bundler_plugin import bundle_js, bundle_css
@@ -217,7 +218,8 @@ _ = _hyperscript
 """
 bundle_js(["https://unpkg.com/hyperscript.org", inline_js, "_(`log 'inline _hs'`)"])  # returns a string by default
 bundle_css(
-    ["https://some.cdn/package.css", {'file': "./mystyles.css", 'scope': '#mydiv'}])  # returns a string by default
+    ["https://some.cdn/package.css", {"file": "./mystyles.css", "scope": "#mydiv"}]
+)  # returns a string by default
 ```
 
 ## License
